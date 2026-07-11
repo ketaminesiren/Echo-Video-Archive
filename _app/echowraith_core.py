@@ -7,6 +7,7 @@ import os
 import queue
 import random
 import re
+import signal
 import shutil
 import subprocess
 import sys
@@ -45,9 +46,9 @@ else:
 
 
 APP_NAME = "EchoWraith"
-APP_VERSION = "3.0.0"
-APP_CREATOR = "Restless"
-APP_TEAM = "Restless"
+APP_VERSION = "3.1.1"
+APP_CREATOR = "Luna"
+APP_TEAM = "Luna"
 BASE_URL = "https://efsaneuzem.com"
 LOGIN_URL = f"{BASE_URL}/sistemegir.php"
 COURSES_URL = f"{BASE_URL}/derslerim.php"
@@ -1353,6 +1354,7 @@ class DownloadEngine:
         self.ffmpeg: Optional[str] = None
         self.ffprobe: Optional[str] = None
         self.current_process: Optional[subprocess.Popen[str]] = None
+        self._process_lock = threading.RLock()
         self._encoder_cache: dict[str, bool] = {}
 
     def check_control(self) -> None:
@@ -2084,20 +2086,48 @@ class DownloadEngine:
             pass
 
     def _terminate_process(self, process: Optional[subprocess.Popen[str]] = None) -> None:
-        process = process or self.current_process
+        with self._process_lock:
+            process = process or self.current_process
         if process is None or process.poll() is not None:
             return
+        # FFmpeg/BBB-dl may spawn Chromium and more FFmpeg children. Killing
+        # only the direct parent leaves those processes running on Windows and
+        # is the reason an old Stop could continue consuming CPU/RAM. Every
+        # child is launched in its own process group and the whole tree is
+        # terminated here.
         try:
-            process.terminate()
-            process.wait(timeout=10)
-        except subprocess.TimeoutExpired:
+            if os.name == "nt":
+                subprocess.run(
+                    ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=12,
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                    check=False,
+                )
+            else:
+                os.killpg(process.pid, signal.SIGTERM)
+            process.wait(timeout=5)
+        except (subprocess.TimeoutExpired, ProcessLookupError):
             try:
-                process.kill()
-                process.wait(timeout=10)
+                if os.name != "nt":
+                    os.killpg(process.pid, signal.SIGKILL)
+                else:
+                    process.kill()
+                process.wait(timeout=5)
             except Exception:
                 pass
         except Exception:
-            pass
+            try:
+                process.kill()
+            except Exception:
+                pass
+
+    def cancel(self) -> None:
+        """Stop network loops and the active external process immediately."""
+        self.stop_event.set()
+        self.pause_event.set()
+        self._terminate_process()
 
     def _run_process(
         self,
@@ -2107,23 +2137,30 @@ class DownloadEngine:
         *,
         stall_timeout: float = 600.0,
     ) -> None:
-        creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+        creationflags = 0
+        popen_kwargs: dict[str, Any] = {}
+        if os.name == "nt":
+            creationflags = subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP
+        else:
+            popen_kwargs["start_new_session"] = True
         env = os.environ.copy()
         env["PYTHONUTF8"] = "1"
         if extra_env:
             env.update(extra_env)
-        self.current_process = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            bufsize=1,
-            creationflags=creationflags,
-            env=env,
-        )
-        process = self.current_process
+        with self._process_lock:
+            self.current_process = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,
+                creationflags=creationflags,
+                env=env,
+                **popen_kwargs,
+            )
+            process = self.current_process
         started = time.monotonic()
         last_emit = 0.0
         last_progress = -1.0
@@ -2239,6 +2276,8 @@ class DownloadEngine:
                     last_progress = value
             code = process.wait()
             reader.join(timeout=5)
+            if self.stop_event.is_set():
+                raise CancelledError("Dönüştürme kullanıcı tarafından durduruldu.")
             if code != 0:
                 summary = " | ".join(tail)[-1200:]
                 raise RuntimeError(f"Dönüştürücü hata koduyla kapandı: {code}. {summary}")
@@ -2629,6 +2668,7 @@ class WorkerController:
         self.progress_total = 0
         self.current_job_type = "idle"
         self.last_finished_at = time.monotonic()
+        self.active_engine: Optional[DownloadEngine] = None
 
     @property
     def busy(self) -> bool:
@@ -2745,6 +2785,7 @@ class WorkerController:
                     site.ensure_login(email, password)
                     self.store.profile = site.extract_profile()
                     engine = DownloadEngine(site, self.sink, self.stop_event, self.pause_event, self.store.settings)
+                    self.active_engine = engine
                     for index, lesson in enumerate(lessons, start=1):
                         self.progress_done = index - 1
                         self.progress_total = len(lessons)
@@ -2815,6 +2856,8 @@ class WorkerController:
                 self.sink.emit("job_cancelled", str(exc))
             except Exception as exc:
                 self._report_error(exc)
+            finally:
+                self.active_engine = None
 
         self._start(job)
 
@@ -2968,7 +3011,18 @@ class WorkerController:
     def cancel(self) -> None:
         self.stop_event.set()
         self.pause_event.set()
+        engine = self.active_engine
+        if engine is not None:
+            engine.cancel()
         self.sink.emit("status", "Durduruluyor…")
+
+    def shutdown(self, timeout: float = 12.0) -> None:
+        """Cancel active work and wait briefly so cleanup/state repair runs."""
+        if self.busy:
+            self.cancel()
+            thread = self.thread
+            if thread is not None and thread is not threading.current_thread():
+                thread.join(timeout=max(0.0, timeout))
 
     def _report_error(self, exc: Exception) -> None:
         diagnosis = self.sink.exception("JOB", exc)
