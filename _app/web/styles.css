@@ -2338,7 +2338,7 @@ body.theater-mode .webcam-card.is-hidden {
 
 .queue-progress {
   display: grid;
-  grid-template-columns: 1fr 33px;
+  grid-template-columns: 1fr 48px;
   align-items: center;
   gap: 7px;
 }
@@ -2469,7 +2469,7 @@ body.theater-mode .webcam-card.is-hidden {
 
 .log-summary-percent {
   flex: 0 0 auto;
-  min-width: 46px;
+  min-width: 64px;
   color: var(--blue-bright, #7fb0ff);
   font-size: 20px;
   font-weight: 700;
@@ -3275,7 +3275,10 @@ body {
 .tour-overlay { position: fixed; z-index: 300; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(4, 7, 15, .84); backdrop-filter: blur(12px); }
 .tour-shell { position: relative; display: grid; grid-template-columns: 360px minmax(0, 1fr); width: min(940px, 100%); min-height: 520px; overflow: hidden; border: 1px solid rgba(97, 119, 183, .4); border-radius: 22px; background: linear-gradient(120deg, rgba(10, 17, 31, .98), rgba(24, 25, 64, .95)), url("./assets/echo-background.webp") center / cover; box-shadow: 0 35px 110px rgba(0, 0, 0, .6); }
 .tour-art { position: relative; min-height: 520px; }
-.tour-art img { position: absolute; z-index: 2; left: -20px; bottom: -190px; width: 405px; filter: drop-shadow(0 22px 38px rgba(0, 0, 0, .56)); }
+.tour-art img { position: absolute; z-index: 2; left: -20px; bottom: -190px; width: 405px; filter: drop-shadow(0 22px 38px rgba(0, 0, 0, .56)); transition: left 520ms cubic-bezier(.2,.75,.25,1), bottom 520ms cubic-bezier(.2,.75,.25,1), width 520ms cubic-bezier(.2,.75,.25,1), transform 520ms cubic-bezier(.2,.75,.25,1); }
+.tour-art[data-pose="1"] img { left: -2px; bottom: -172px; width: 390px; transform: rotate(-1.2deg); }
+.tour-art[data-pose="2"] img { left: -38px; bottom: -205px; width: 435px; transform: rotate(1deg); }
+.tour-art[data-pose="3"] img { left: 8px; bottom: -186px; width: 402px; transform: scaleX(-1); }
 .tour-glow { position: absolute; inset: 20% 0 0; background: radial-gradient(circle, rgba(64, 116, 255, .28), transparent 66%); }
 .tour-copy { display: grid; align-content: center; gap: 12px; padding: 50px 54px 46px 28px; }
 .tour-copy h2 { margin: 0; font-size: clamp(30px, 3.3vw, 46px); line-height: 1.12; }
