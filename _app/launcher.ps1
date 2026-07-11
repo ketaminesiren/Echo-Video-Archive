@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 $AppRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $DataRoot = Join-Path $env:LOCALAPPDATA "EchoWraith"
 $RuntimeRoot = Join-Path $DataRoot "runtime"
@@ -16,9 +16,22 @@ function Write-Step([string]$Message) {
     Add-Content -Path $LauncherLog -Value $line -Encoding UTF8
 }
 
+function Write-LunaBanner {
+    $art = @(
+        '        /\_/\\',
+        '       ( o.o )    LUNA',
+        '        > ^ <     EchoWraith kurulum sihirbazı',
+        '',
+        '  Ders arşivini hazırlıyorum; gereken bileşenleri ben yöneteceğim.'
+    )
+    Write-Host ''
+    foreach ($line in $art) { Write-Host "  $line" -ForegroundColor Magenta }
+    Write-Host ''
+}
+
 function Invoke-Logged([string]$File, [string[]]$Arguments) {
     & $File @Arguments 2>&1 | Tee-Object -FilePath $LauncherLog -Append
-    if ($LASTEXITCODE -ne 0) { throw "Komut tamamlanamadi: $File" }
+    if ($LASTEXITCODE -ne 0) { throw "Komut tamamlanamadı: $File" }
 }
 
 function Test-Python([string]$Candidate, [string[]]$Prefix = @()) {
@@ -32,7 +45,8 @@ function Test-Python([string]$Candidate, [string[]]$Prefix = @()) {
 }
 
 try {
-    Write-Step "EchoWraith baslatiliyor…"
+    Write-LunaBanner
+    Write-Step "EchoWraith başlatılıyor…"
     $Python = $null
     if (Get-Command py -ErrorAction SilentlyContinue) {
         $Python = Test-Python "py" @("-3.12")
@@ -44,24 +58,24 @@ try {
     }
 
     if (-not $Python) {
-        Write-Step "Gerekli Python bileseni bulunamadi; kullanici hesabina otomatik kuruluyor…"
+        Write-Step "Gerekli Python bileşeni bulunamadı; kullanıcı hesabına otomatik kuruluyor…"
         $Installer = Join-Path $RuntimeRoot "python-installer.exe"
         $PythonUrl = "https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe"
         Invoke-WebRequest -Uri $PythonUrl -OutFile $Installer -UseBasicParsing
         $process = Start-Process -FilePath $Installer -ArgumentList "/quiet", "InstallAllUsers=0", "PrependPath=1", "Include_test=0", "Include_launcher=1" -Wait -PassThru
-        if ($process.ExitCode -ne 0) { throw "Python otomatik kurulamadi (kod $($process.ExitCode))." }
+        if ($process.ExitCode -ne 0) { throw "Python otomatik kurulamadı (kod $($process.ExitCode))." }
         Remove-Item $Installer -Force -ErrorAction SilentlyContinue
         $installed = Join-Path $env:LOCALAPPDATA "Programs\Python\Python312\python.exe"
-        if (-not (Test-Path $installed)) { throw "Python kuruldu ancak calistirma dosyasi bulunamadi." }
+        if (-not (Test-Path $installed)) { throw "Python kuruldu ancak çalıştırma dosyası bulunamadı." }
         $Python = @{ File = $installed; Prefix = @() }
     }
 
     $VenvPython = Join-Path $VenvRoot "Scripts\python.exe"
     $VenvPythonW = Join-Path $VenvRoot "Scripts\pythonw.exe"
     if (-not (Test-Path $VenvPython)) {
-        Write-Step "İlk kullanim ortami hazirlaniyor (yalnizca bir kez)…"
+        Write-Step "İlk kullanım ortamı hazırlanıyor (yalnızca bir kez)…"
         & $Python.File @($Python.Prefix) -m venv $VenvRoot
-        if ($LASTEXITCODE -ne 0) { throw "Yerel calisma ortami olusturulamadi." }
+        if ($LASTEXITCODE -ne 0) { throw "Yerel çalışma ortamı oluşturulamadı." }
     }
 
     $Requirements = Join-Path $AppRoot "requirements.txt"
@@ -76,19 +90,19 @@ try {
     }
     if ($CurrentHash -ne $SavedHash -or -not $RuntimeHealthy) {
         if ($SavedHash -and -not $RuntimeHealthy) {
-            Write-Step "calisma bilesenlerinden biri eksik; otomatik onarim uygulaniyor…"
+            Write-Step "Çalışma bileşenlerinden biri eksik; otomatik onarım uygulanıyor…"
         }
-        Write-Step "Gerekli bilesenler kuruluyor; ilk acilis birkac dakika surebilir…"
+        Write-Step "Gerekli bileşenler kuruluyor; ilk açılış birkaç dakika sürebilir…"
         Invoke-Logged $VenvPython @("-m", "pip", "install", "--upgrade", "pip", "wheel")
         Invoke-Logged $VenvPython @("-m", "pip", "install", "--prefer-binary", "-r", $Requirements)
-        Write-Step "Gorunmeyen tarayici motoru hazirlaniyor…"
+        Write-Step "Görünmeyen tarayıcı motoru hazırlanıyor…"
         Invoke-Logged $VenvPython @("-m", "playwright", "install", "chromium")
-        Write-Step "Video araclari hazirlaniyor…"
+        Write-Step "Video araçları hazırlanıyor…"
         Invoke-Logged $VenvPython @("-c", "from static_ffmpeg import run; print(run.get_or_fetch_platform_executables_else_raise())")
         Set-Content -Path $Marker -Value $CurrentHash -Encoding ASCII
     }
 
-    Write-Step "Hazir. EchoWraith tarayicida aciliyor…"
+    Write-Step "Hazır. Luna paneli tarayıcıda açıyor…"
     $ServerScript = Join-Path $AppRoot "echowraith_server.py"
     Start-Process -FilePath $VenvPythonW -ArgumentList "`"$ServerScript`"" -WorkingDirectory $AppRoot
     Start-Sleep -Milliseconds 900
@@ -96,8 +110,8 @@ try {
 } catch {
     $message = $_.Exception.Message
     Add-Content -Path $LauncherLog -Value "FATAL: $message`n$($_.ScriptStackTrace)" -Encoding UTF8
-    Write-Host "`n  EchoWraith baslatilamadi: $message" -ForegroundColor Red
-    Write-Host "  Ayrintili kayit: $LauncherLog" -ForegroundColor Yellow
+    Write-Host "`n  EchoWraith başlatılamadı: $message" -ForegroundColor Red
+    Write-Host "  Ayrıntılı kayıt: $LauncherLog" -ForegroundColor Yellow
     try { Start-Process explorer.exe -ArgumentList "/select,`"$LauncherLog`"" } catch {}
     exit 1
 }
