@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1020" />
+    <title>EchoWraith — Restless</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="boot-screen" class="boot-screen" role="status" aria-live="polite">
+      <div class="boot-logo" aria-hidden="true">
+        <svg viewBox="0 0 48 48"><path d="M7 12c7-2 12 0 17 4 5-4 10-6 17-4v26c-7-2-12 0-17 4-5-4-10-6-17-4V12Z"/><path d="M24 16v26M12 8l2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1 2-4Z"/></svg>
+      </div>
+      <strong>EchoWraith</strong>
+      <span>Ders kütüphanen hazırlanıyor…</span>
+      <div class="boot-bar"><i></i></div>
+    </div>
+
+    <div id="app" class="app-shell is-loading">
+      <aside id="sidebar" class="sidebar" aria-label="Ana menü">
+        <div class="brand" data-action="go-library" tabindex="0" role="button" aria-label="Kütüphaneye dön">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48"><path d="M7 12c7-2 12 0 17 4 5-4 10-6 17-4v26c-7-2-12 0-17 4-5-4-10-6-17-4V12Z"/><path d="M24 16v26M12 8l2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1 2-4Z"/></svg>
+          </span>
+          <span>EchoWraith</span>
+          <small>by Restless</small>
+        </div>
+
+        <nav class="primary-nav">
+          <button class="nav-item is-active" data-view="library" type="button">
+            <span data-icon="library"></span><span>Kütüphane</span>
+          </button>
+          <button class="nav-item" data-view="downloads" type="button">
+            <span data-icon="download"></span><span>İndirmeler</span><b id="download-badge" class="nav-badge is-hidden">0</b>
+          </button>
+          <button class="nav-item" data-view="history" type="button">
+            <span data-icon="history"></span><span>İzleme Geçmişi</span>
+          </button>
+          <button class="nav-item" data-view="study" type="button">
+            <span data-icon="brain"></span><span>Transkript & Test</span>
+          </button>
+          <button class="nav-item" data-view="diagnostics" type="button">
+            <span data-icon="pulse"></span><span>Tanılama</span>
+          </button>
+          <button class="nav-item" data-view="help" type="button">
+            <span data-icon="help"></span><span>Nasıl Kullanılır?</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-spacer"></div>
+
+        <section class="storage-card" aria-label="Depolama kullanımı">
+          <div class="storage-head"><span>Depolama Kullanımı</span><span id="storage-percent">—</span></div>
+          <strong id="storage-copy">Hesaplanıyor…</strong>
+          <div class="meter"><i id="storage-meter"></i></div>
+          <button class="text-button" data-action="open-output" type="button">Klasörü aç</button>
+        </section>
+
+        <button id="account-card" class="account-card" data-action="open-settings" type="button">
+          <span class="avatar">YH</span>
+          <span class="account-copy"><strong id="account-name">Öğrenci Hesabı</strong><small id="account-meta"><i class="online-dot"></i> Bilgiler yükleniyor</small></span>
+          <span data-icon="chevron"></span>
+        </button>
+      </aside>
+
+      <div id="sidebar-scrim" class="sidebar-scrim" data-action="close-sidebar"></div>
+
+      <main class="workspace">
+        <header class="topbar">
+          <button class="icon-button mobile-menu" data-action="toggle-sidebar" type="button" aria-label="Menüyü aç"><span data-icon="menu"></span></button>
+          <label class="global-search">
+            <span data-icon="search"></span>
+            <input id="global-search" type="search" placeholder="Derslerde ara…" autocomplete="off" />
+            <kbd>Ctrl K</kbd>
+          </label>
+          <div class="top-filters">
+            <label class="select-control"><span class="sr-only">Ders türü</span><select id="type-filter"><option value="all">Tüm dersler</option><option value="BBB / TUES">BBB / TUES</option><option value="Zoom">Zoom</option><option value="Doğrudan video">Normal video</option><option value="unknown">Henüz analiz edilmemiş</option></select><span data-icon="chevron"></span></label>
+            <label class="select-control year-control"><span data-icon="calendar"></span><select id="year-filter"><option value="all">Tüm yıllar</option></select><span data-icon="chevron"></span></label>
+            <button class="icon-button" data-action="open-shortcuts" type="button" aria-label="Klavye kısayolları"><span data-icon="keyboard"></span></button>
+            <button class="icon-button" data-action="open-settings" type="button" aria-label="Ayarlar"><span data-icon="settings"></span></button>
+          </div>
+        </header>
+
+        <div id="connection-banner" class="connection-banner is-hidden" role="status">
+          <span class="spinner small"></span><span id="connection-copy">İşlem sürüyor…</span>
+          <button class="text-button" data-action="show-downloads" type="button">Ayrıntılar</button>
+        </div>
+
+        <section id="library-view" class="view is-active" data-view-panel="library">
+          <div class="page-heading">
+            <div>
+              <span class="eyebrow">RESTLESS SUNAR · YEREL DERS ARŞİVİ</span>
+              <h1>Kütüphane</h1>
+              <p id="library-summary">Derslerin yükleniyor…</p>
+            </div>
+            <div class="heading-actions">
+              <button class="button secondary" data-action="scan" type="button"><span data-icon="refresh"></span>Dersleri tara</button>
+              <button class="button danger-soft" data-action="delete-selected" type="button"><span data-icon="trash"></span>Seçilenleri sil</button>
+              <button class="button primary" data-action="download-selected" type="button"><span data-icon="download"></span>Seçilenleri indir</button>
+            </div>
+          </div>
+
+          <div id="resume-card" class="resume-card is-hidden">
+            <div class="resume-art"><span data-icon="play"></span></div>
+            <div class="resume-copy"><span>KALDIĞIN YERDEN</span><strong id="resume-title">—</strong><small id="resume-meta">—</small></div>
+            <div class="resume-progress"><i id="resume-progress-bar"></i></div>
+            <button class="button primary compact" data-action="resume-last" type="button"><span data-icon="play"></span>Devam et</button>
+          </div>
+
+          <div class="library-toolbar">
+            <div class="segmented" role="group" aria-label="Durum filtresi">
+              <button class="is-active" data-status-filter="all" type="button">Tümü <b id="count-all">0</b></button>
+              <button data-status-filter="ready" type="button">İndirilen <b id="count-ready">0</b></button>
+              <button data-status-filter="pending" type="button">Bekleyen <b id="count-pending">0</b></button>
+              <button data-status-filter="error" type="button">Hatalı <b id="count-error">0</b></button>
+            </div>
+            <div class="toolbar-right">
+              <button class="button ghost compact" data-action="select-all" type="button">Tümünü seç</button>
+              <button class="button ghost compact" data-action="select-none" type="button">Temizle</button>
+              <label class="select-control compact-select"><select id="sort-filter"><option value="date-desc">Yeni tarih</option><option value="date-asc">Eski tarih</option><option value="title">A–Z</option><option value="progress">İzleme ilerlemesi</option></select><span data-icon="chevron"></span></label>
+              <button id="density-toggle" class="icon-button compact-icon" data-action="toggle-density" type="button" aria-label="Görünümü değiştir"><span data-icon="grid"></span></button>
+            </div>
+          </div>
+
+          <div id="lesson-list" class="lesson-grid" aria-live="polite"></div>
+          <div id="library-empty" class="empty-state is-hidden">
+            <span data-icon="search"></span><h2>Ders bulunamadı</h2><p>Arama veya filtreleri temizleyip tekrar dene.</p>
+            <button class="button secondary" data-action="clear-filters" type="button">Filtreleri temizle</button>
+          </div>
+        </section>
+
+        <section id="watch-view" class="view watch-view" data-view-panel="watch">
+          <div id="watch-header" class="watch-header"></div>
+          <div id="watch-layout" class="watch-layout">
+            <article class="player-card">
+              <div id="main-media-shell" class="main-media-shell">
+                <video id="main-video" playsinline preload="metadata"></video>
+                <div id="preview-presentation" class="preview-presentation is-hidden" aria-hidden="true">
+                  <div class="whiteboard-title">ÇOCUK HAKLARI</div>
+                  <div class="whiteboard-grid">
+                    <div><h3>Temel İlkeler</h3><p>✓ Ayrım gözetmeme</p><p>✓ Çocuğun üstün yararı</p><p>✓ Yaşama, gelişme ve korunma</p><p>✓ Katılım hakkı</p></div>
+                    <div class="board-divider"></div>
+                    <div><h3>BM Çocuk Haklarına Dair Sözleşme</h3><strong>(1989)</strong><div class="board-bubble">Her çocuk haklarıyla bir bütündür.</div></div>
+                  </div>
+                </div>
+                <button id="center-play" class="center-play" type="button" aria-label="Oynat"><span data-icon="play"></span></button>
+                <div id="resume-toast" class="resume-toast is-hidden"><span data-icon="history"></span><span>Kaldığın yerden devam edildi</span></div>
+                <div id="chapter-tooltip" class="chapter-tooltip is-hidden"></div>
+              </div>
+              <div id="chapter-rail" class="chapter-rail"></div>
+              <div class="player-controls">
+                <button id="play-toggle" class="control-button primary-control" type="button" aria-label="Oynat"><span data-icon="play"></span></button>
+                <button class="control-button" data-action="rewind" type="button" aria-label="10 saniye geri"><span data-icon="rewind"></span></button>
+                <button class="control-button" data-action="forward" type="button" aria-label="10 saniye ileri"><span data-icon="forward"></span></button>
+                <span id="time-copy" class="time-copy">00:00 / 00:00</span>
+                <label class="seek-wrap"><span class="sr-only">Video konumu</span><input id="seek-slider" type="range" min="0" max="1000" value="0" /></label>
+                <button id="mute-toggle" class="control-button" type="button" aria-label="Sesi kapat"><span data-icon="volume"></span></button>
+                <label class="volume-wrap"><span class="sr-only">Ses seviyesi</span><input id="volume-slider" type="range" min="0" max="1" step="0.05" value="0.8" /></label>
+                <label class="speed-control"><span class="sr-only">Oynatma hızı</span><select id="speed-select"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select></label>
+                <button class="control-button" data-action="bookmark" type="button" aria-label="Bu ana not ekle"><span data-icon="bookmark"></span></button>
+                <button class="control-button" data-action="pip" type="button" aria-label="Resim içinde resim"><span data-icon="pip"></span></button>
+                <button class="control-button" data-action="theater" type="button" aria-label="Odak modu"><span data-icon="theater"></span></button>
+                <button class="control-button" data-action="fullscreen" type="button" aria-label="Tam ekran"><span data-icon="fullscreen"></span></button>
+              </div>
+            </article>
+
+            <aside id="media-rail" class="media-rail">
+              <article id="webcam-card" class="webcam-card">
+                <div class="card-heading"><strong>Öğretmen Kamerası</strong><div><span id="sync-state" class="sync-pill">Senkron</span><button class="mini-button" data-action="hide-webcam" type="button" aria-label="Kamerayı gizle"><span data-icon="collapse"></span></button></div></div>
+                <div class="webcam-shell"><video id="webcam-video" muted playsinline preload="metadata"></video><div id="preview-webcam" class="preview-webcam is-hidden"><div class="teacher-silhouette"><span></span></div><b>Öğretmen</b></div></div>
+              </article>
+
+              <article id="companion-card" class="companion-card">
+                <div class="companion-tabs" role="tablist">
+                  <button class="is-active" data-companion-tab="chat" type="button">Sohbet <b id="chat-count">0</b></button>
+                  <button data-companion-tab="notes" type="button">Notlar <b id="notes-count">0</b></button>
+                  <button data-companion-tab="transcript" type="button">Transkript <b id="transcript-count">0</b></button>
+                  <button class="more-button" data-action="toggle-chat-follow" type="button" aria-label="Sohbet otomatik takibi"><span data-icon="target"></span></button>
+                </div>
+                <div id="chat-panel" class="companion-panel is-active">
+                  <label class="chat-search"><span data-icon="search"></span><input id="chat-search" type="search" placeholder="Sohbette ara…" /></label>
+                  <div id="chat-list" class="chat-list"></div>
+                </div>
+                <div id="notes-panel" class="companion-panel">
+                  <div id="notes-list" class="notes-list"></div>
+                  <form id="note-form" class="note-form"><input id="note-input" type="text" maxlength="300" placeholder="Bu ana bir not ekle…" /><button type="submit" aria-label="Notu kaydet"><span data-icon="send"></span></button></form>
+                </div>
+                <div id="transcript-panel" class="companion-panel">
+                  <div id="player-transcript-list" class="transcript-mini-list"></div>
+                  <button class="button primary compact transcript-create" data-action="transcribe-current" type="button"><span data-icon="brain"></span>Transkript oluştur</button>
+                </div>
+              </article>
+            </aside>
+          </div>
+          <div id="watch-status-strip" class="watch-status-strip"></div>
+        </section>
+
+        <section id="downloads-view" class="view" data-view-panel="downloads">
+          <div class="page-heading">
+            <div><span class="eyebrow">İNDİRME MERKEZİ</span><h1>İndirmeler</h1><p>Tara, kuyruğu yönet ve hatalı dersleri yeniden dene.</p></div>
+            <div class="heading-actions"><button id="pause-job" class="button secondary" data-action="pause-job" type="button"><span data-icon="pause"></span>Duraklat</button><button class="button danger" data-action="cancel-job" type="button"><span data-icon="close"></span>Durdur</button></div>
+          </div>
+          <div class="job-overview">
+            <div class="job-ring"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="18"></circle><circle id="job-ring-progress" cx="22" cy="22" r="18"></circle></svg><strong id="job-percent">0%</strong></div>
+            <div class="job-copy"><span id="job-label">İşlem yok</span><strong id="job-title">Kuyruk hazır</strong><small id="job-detail">Kütüphaneden ders seçerek indirmeyi başlatabilirsin.</small></div>
+            <button class="button primary" data-action="scan" type="button"><span data-icon="refresh"></span>Siteyi tara</button>
+          </div>
+          <div class="downloads-grid">
+            <article class="queue-card"><div class="section-heading"><div><h2>Kuyruk</h2><span id="queue-summary">0 ders</span></div><button class="button ghost compact" data-action="retry-errors" type="button">Hataları tekrar dene</button></div><div id="queue-list" class="queue-list"></div></article>
+            <article class="log-card"><div class="section-heading"><div><h2>Canlı Günlük</h2><span>Son işlemler</span></div><button class="icon-button compact-icon" data-action="clear-log" type="button" aria-label="Günlüğü temizle"><span data-icon="trash"></span></button></div><div id="log-list" class="log-list"></div></article>
+          </div>
+        </section>
+
+        <section id="history-view" class="view" data-view-panel="history">
+          <div class="page-heading"><div><span class="eyebrow">İZLEME KAYITLARI</span><h1>İzleme Geçmişi</h1><p>Kaldığın derslere dön veya tamamladıklarını yeniden izle.</p></div></div>
+          <div id="history-list" class="history-list"></div>
+          <div id="history-empty" class="empty-state is-hidden"><span data-icon="history"></span><h2>Henüz izleme geçmişi yok</h2><p>Bir ders açtığında ilerlemen burada görünecek.</p></div>
+        </section>
+
+        <section id="study-view" class="view" data-view-panel="study">
+          <div class="page-heading study-heading">
+            <div><span class="eyebrow">YEREL YAPAY ZEKÂ ÇALIŞMA ALANI</span><h1>Transkript & Test</h1><p>İndirdiğin dersi yazıya çevir, ardından çoktan seçmeli testle kendini ölç.</p></div>
+            <div class="heading-actions"><button class="button secondary" data-action="open-help-study" type="button"><span data-icon="help"></span>Nasıl çalışır?</button></div>
+          </div>
+          <div class="study-toolbar">
+            <label><span>Ders seç</span><select id="study-lesson-select"><option value="">İndirilmiş bir ders seç…</option></select></label>
+            <label><span>Transkript kalitesi</span><select id="study-model-select"><option value="tiny">Hızlı</option><option value="base" selected>Dengeli</option><option value="small">Daha doğru</option></select></label>
+            <button class="button primary" data-action="start-transcript" type="button"><span data-icon="brain"></span>Transkript oluştur</button>
+            <button class="button secondary" data-action="generate-quiz" type="button"><span data-icon="spark"></span>Yeni test üret</button>
+          </div>
+          <div id="study-progress" class="study-progress is-hidden"><span class="spinner"></span><div><strong id="study-progress-title">Lütfen bekleyin…</strong><small id="study-progress-copy">Video yerel olarak analiz ediliyor.</small><div class="meter"><i id="study-progress-bar"></i></div></div></div>
+          <div class="study-grid">
+            <article class="transcript-card"><div class="section-heading"><div><h2>Video Transkripti</h2><span id="transcript-summary">Henüz oluşturulmadı</span></div><label class="chat-search study-search"><span data-icon="search"></span><input id="transcript-search" type="search" placeholder="Transkriptte ara…" /></label></div><div id="study-transcript-list" class="study-transcript-list"><div class="study-placeholder"><span data-icon="brain"></span><strong>Önce bir ders seç</strong><p>“Transkript oluştur” dediğinde konuşmalar cihazında yazıya çevrilir.</p></div></div></article>
+            <article class="quiz-card"><div class="section-heading"><div><h2>Çoktan Seçmeli Test</h2><span id="quiz-summary">Transkriptten otomatik hazırlanır</span></div><button class="button ghost compact" data-action="reset-quiz" type="button">Baştan başla</button></div><div id="quiz-body" class="quiz-body"><div class="study-placeholder"><span data-icon="spark"></span><strong>Test hazır olduğunda burada görünecek</strong><p>Her cevaptan sonra doğru seçenek ve kısa açıklama gösterilir.</p></div></div></article>
+          </div>
+        </section>
+
+        <section id="diagnostics-view" class="view" data-view-panel="diagnostics">
+          <div class="page-heading"><div><span class="eyebrow">GELİŞMİŞ İŞLEM RAPORU</span><h1>Tanılama Merkezi</h1><p>EchoWraith’in yaptığı her aşama, denediği otomatik çözümler ve hata nedenleri burada görünür.</p></div><div class="heading-actions"><button class="button secondary" data-action="open-logs" type="button"><span data-icon="folder"></span>Log klasörünü aç</button><a class="button primary" href="/api/diagnostics/bundle" download><span data-icon="download"></span>Destek paketini indir</a></div></div>
+          <div class="diagnostic-overview"><div><span class="strip-icon success" data-icon="check"></span><span><strong id="diag-server">Yerel sunucu hazır</strong><small>Panel yalnızca bu bilgisayarda çalışır</small></span></div><div><span class="strip-icon" data-icon="pulse"></span><span><strong id="diag-job">İşlem bekleniyor</strong><small id="diag-stage">Son aşama: Hazır</small></span></div><div><span class="strip-icon" data-icon="shield"></span><span><strong>Gizlilik filtresi açık</strong><small>Parola ve oturum verileri loglardan çıkarılır</small></span></div></div>
+          <article class="diagnostic-log-card"><div class="section-heading"><div><h2>Aşama Günlüğü</h2><span>Bilgi · uyarı · otomatik çözüm · hata</span></div><div class="log-filters"><button class="is-active" data-log-filter="all" type="button">Tümü</button><button data-log-filter="INFO" type="button">Bilgi</button><button data-log-filter="WARNING" type="button">Uyarı</button><button data-log-filter="ERROR" type="button">Hata</button></div></div><div id="diagnostic-log-list" class="diagnostic-log-list"></div></article>
+        </section>
+
+        <section id="help-view" class="view" data-view-panel="help">
+          <div class="help-hero"><div><span class="eyebrow">ECHO’NUN REHBERİ</span><h1>Teknik bilgi gerekmeden kullan</h1><p>Şefim, ders arşivinin sana ihtiyacı var. Aşağıdaki dört adımı sırayla uygula; geri kalanını EchoWraith halleder.</p><button class="button primary" data-action="replay-tour" type="button"><span data-icon="spark"></span>Tanıtımı yeniden başlat</button></div><img src="./assets/echo-mascot.webp" alt="EchoWraith rehberi Echo" /></div>
+          <div class="help-steps"><article><b>1</b><span><strong>Hesabını bağla</strong><small>Ayarlar’a gir, sitedeki e-posta ve şifreni yaz. Şifre kaydedilmez.</small></span></article><article><b>2</b><span><strong>Dersleri tara</strong><small>Kütüphanedeki “Dersleri tara” düğmesine bas. Tarayıcı yalnızca gerekirse görünür.</small></span></article><article><b>3</b><span><strong>Seç ve indir</strong><small>İstediğin dersleri işaretleyip “Seçilenleri indir” de. Hız, yüzde ve kalan süreyi İndirmeler’de izle.</small></span></article><article><b>4</b><span><strong>İzle ve test çöz</strong><small>Ana video, webcam ve sohbet senkron açılır. İstersen transkript ve test de oluştur.</small></span></article></div>
+          <div class="help-faq"><details open><summary>Bir hata olursa ne yapacağım?</summary><p>Önce bekle: EchoWraith bağlantı, oturum, tarayıcı, indirme ve video onarım yöntemlerini otomatik dener. Çözemezse Tanılama’dan destek paketini indirip paylaşabilirsin.</p></details><details><summary>Chrome penceresi neden bazen açılıyor?</summary><p>İlk tercih görünmeyen arka plan modudur. Site giriş veya oynatıcı erişimi için bunu kabul etmezse görünür pencere son çare olarak açılır ve işlem bitince kapanır.</p></details><details><summary>Transkript internete yükleniyor mu?</summary><p>Hayır. Konuşma tanıma bilgisayarında çalışır. İlk kullanımda model hazırlanırken biraz beklemek normaldir.</p></details><details><summary>İndirilenleri nasıl silerim?</summary><p>Kütüphanede dersleri seçip “Seçilenleri sil” düğmesine bas. Onay vermeden hiçbir dosya silinmez.</p></details></div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="settings-dialog" class="dialog settings-dialog">
+      <form method="dialog" class="dialog-shell">
+        <header class="dialog-header"><div><span class="eyebrow">YEREL UYGULAMA</span><h2>Ayarlar ve Bağlantı</h2></div><button class="icon-button" value="cancel" aria-label="Kapat"><span data-icon="close"></span></button></header>
+        <div class="settings-grid">
+          <section class="settings-section account-section">
+            <div class="section-heading"><div><h3>Efsane Uzem Oturumu</h3><span>Bilgiler yalnızca giriş sırasında bellekte tutulur.</span></div><span id="auth-state" class="state-pill warning">Kontrol edilmedi</span></div>
+            <label><span>Öğrenci e-postası</span><input id="email-input" type="email" autocomplete="username" placeholder="ornek@gmail.com" /></label>
+            <label><span>Şifre</span><input id="password-input" type="password" autocomplete="current-password" placeholder="••••••••" /></label>
+            <div class="inline-actions"><button id="login-button" class="button primary" data-action="login" type="button"><span data-icon="login"></span>Oturumu aç</button><button class="button secondary" data-action="browser-login" type="button">Tarayıcıda tamamla</button></div>
+            <div id="profile-summary" class="profile-summary"><div class="profile-summary-head"><span class="avatar">EH</span><span><strong>Site üyeliği henüz okunmadı</strong><small>Oturum açınca güncel bilgiler burada görünür.</small></span></div><div id="profile-fields" class="profile-fields"></div></div>
+          </section>
+          <section class="settings-section">
+            <div class="section-heading"><div><h3>İndirme</h3><span>Dosyaların ve dönüştürmenin davranışı.</span></div></div>
+            <label><span>Kayıt klasörü</span><div class="input-action"><input id="output-input" type="text" /><button class="button secondary compact" data-action="choose-folder" type="button">Seç</button></div></label>
+            <div class="field-row"><label><span>Kalite</span><select id="quality-input"><option>Hızlı (720p)</option><option>Dengeli (720p)</option><option>Yüksek (1080p)</option></select></label><label><span>Kodlayıcı</span><select id="encoder-input"><option>libx264 (uyumlu)</option><option>NVIDIA NVENC</option><option>Intel Quick Sync</option><option>AMD AMF</option></select></label></div>
+            <div class="field-row"><label><span>Paralel indirme parçaları</span><select id="segments-input"><option value="1">1 · En uyumlu</option><option value="2">2 · Dengeli</option><option value="4">4 · Hızlı</option><option value="6">6 · Çok hızlı</option><option value="8">8 · En yüksek</option></select></label><label><span>Transkript modeli</span><select id="transcript-model-input"><option value="tiny">Hızlı</option><option value="base">Dengeli</option><option value="small">Daha doğru</option></select></label></div>
+            <label><span>Panel kapanınca arka planı kapat</span><select id="idle-input"><option value="1">1 dakika sonra</option><option value="3">3 dakika sonra</option><option value="5">5 dakika sonra</option><option value="15">15 dakika sonra</option></select></label>
+            <label class="switch-row"><span><strong>Sohbeti kaydet</strong><small>Bulunabilen mesajları zaman damgasıyla arşivler.</small></span><input id="chat-switch" type="checkbox" /><i></i></label>
+            <label class="switch-row"><span><strong>Önce arka planda dene</strong><small>Site izin vermezse görünür tarayıcı otomatik açılır.</small></span><input id="headless-switch" type="checkbox" /><i></i></label>
+            <label class="switch-row"><span><strong>Video önizlemeleri</strong><small>İndirme bitince hafif karartılmış kapak karesi oluşturur.</small></span><input id="thumbnail-switch" type="checkbox" /><i></i></label>
+          </section>
+        </div>
+        <footer class="dialog-footer"><div><button class="button ghost" data-action="replay-tour" type="button">Tanıtımı aç</button><button class="button danger-soft" data-action="shutdown-app" type="button">EchoWraith’i kapat</button></div><div><button class="button ghost" value="cancel">Vazgeç</button><button class="button primary" data-action="save-settings" type="button">Ayarları kaydet</button></div></footer>
+      </form>
+    </dialog>
+
+    <dialog id="shortcuts-dialog" class="dialog shortcuts-dialog">
+      <form method="dialog" class="dialog-shell compact-dialog">
+        <header class="dialog-header"><div><span class="eyebrow">OYNUCU</span><h2>Klavye Kısayolları</h2></div><button class="icon-button" value="cancel" aria-label="Kapat"><span data-icon="close"></span></button></header>
+        <div class="shortcut-grid"><span>Oynat / duraklat</span><kbd>Space</kbd><span>10 sn geri / ileri</span><div><kbd>J</kbd><kbd>L</kbd></div><span>Sesi aç / kapat</span><kbd>M</kbd><span>Tam ekran</span><kbd>F</kbd><span>Not ekle</span><kbd>B</kbd><span>Hızı azalt / artır</span><div><kbd>[</kbd><kbd>]</kbd></div><span>Arama</span><kbd>Ctrl K</kbd></div>
+      </form>
+    </dialog>
+
+    <div id="confirm-modal" class="confirm-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div class="confirm-card"><span id="confirm-icon" class="confirm-icon" data-icon="alert"></span><h2 id="confirm-title">Emin misin?</h2><p id="confirm-copy"></p><div><button class="button ghost" data-action="confirm-cancel" type="button">Vazgeç</button><button id="confirm-accept" class="button danger" type="button">Onayla</button></div></div>
+    </div>
+
+    <div id="recovery-overlay" class="recovery-overlay is-hidden" role="status" aria-live="assertive">
+      <div class="recovery-card"><span class="recovery-orb"><i></i></span><span><small>OTOMATİK ÇÖZÜM DEVREDE</small><strong id="recovery-title">Lütfen bekleyin…</strong><p id="recovery-copy">EchoWraith daha uyumlu bir yöntem deniyor.</p></span></div>
+    </div>
+
+    <div id="tour-overlay" class="tour-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+      <div class="tour-shell"><div class="tour-art"><img src="./assets/echo-mascot.webp" alt="EchoWraith rehberi Echo" /><span class="tour-glow"></span></div><div class="tour-copy"><span class="eyebrow">ECHO · RESTLESS REHBERİ</span><h2 id="tour-title">Şefim, arşivin sana ihtiyacı var.</h2><p id="tour-text">Ben Echo. İlk kurulumu birlikte birkaç kolay adımda tamamlayacağız.</p><div id="tour-dots" class="tour-dots"></div><div class="tour-actions"><button class="button ghost" data-action="skip-tour" type="button">Şimdilik geç</button><button id="tour-next" class="button primary" data-action="next-tour" type="button">Başlayalım</button></div></div></div>
+    </div>
+
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <noscript>Bu paneli kullanabilmek için JavaScript açık olmalıdır.</noscript>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

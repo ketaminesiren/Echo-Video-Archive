@@ -1,0 +1,6 @@
+playwright>=1.52.0,<2
+requests>=2.32.3,<3
+bbb-dl==1.0.13
+static-ffmpeg>=3.0,<4
+yt-dlp>=2025.6.30,<2027
+faster-whisper>=1.1.1,<2
