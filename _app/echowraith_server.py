@@ -547,6 +547,9 @@ class EchoWraithHandler(BaseHTTPRequestHandler):
             if WORKER.busy:
                 raise RuntimeError("Aktif işlem bitmeden güncelleme yapılamaz.")
             status = updater.check_update()
+            if status.get("error"):
+                self._json({"ok": False, "applied": False, "error": status["error"]}, 503)
+                return True
             if not status.get("available"):
                 self._json({"ok": True, "applied": False, "message": "EchoWraith zaten güncel."})
                 return True
@@ -571,7 +574,12 @@ class EchoWraithHandler(BaseHTTPRequestHandler):
         if method == "POST" and path == "/api/shutdown":
             self._json({"ok": True, "message": "EchoWraith kapatılıyor."})
             if SERVER_INSTANCE is not None:
-                threading.Thread(target=SERVER_INSTANCE.shutdown, daemon=True, name="echowraith-shutdown").start()
+                def stop_everything() -> None:
+                    WORKER.shutdown(timeout=12.0)
+                    if SERVER_INSTANCE is not None:
+                        SERVER_INSTANCE.shutdown()
+
+                threading.Thread(target=stop_everything, daemon=True, name="echowraith-shutdown").start()
             return True
 
         progress_match = re.fullmatch(r"/api/lessons/([^/]+)/progress", path)
@@ -800,13 +808,13 @@ def main() -> int:
     def idle_watchdog() -> None:
         while SERVER_INSTANCE is server:
             time.sleep(5)
-            if WORKER.busy:
-                continue
             now = time.monotonic()
             left_at = CLIENT_LEFT_AT
             explicit_close = left_at is not None and now - left_at > 15
             idle_limit = max(60, int(STORE.settings.idle_shutdown_minutes) * 60)
             idle_timeout = now - LAST_CLIENT_SEEN > idle_limit
+            if WORKER.busy and not explicit_close:
+                continue
             if explicit_close or idle_timeout:
                 core.EventSink(BROKER).log(
                     "Panel kapatıldığı için gereksiz arka plan işlemleri sonlandırılıyor.",
@@ -814,6 +822,10 @@ def main() -> int:
                     stage="CLEANUP",
                     code="IDLE_SHUTDOWN",
                 )
+                # Closing the last panel is an explicit request to close the
+                # application, including an active download/render. This also
+                # kills the complete FFmpeg/Chromium child tree.
+                WORKER.shutdown(timeout=12.0)
                 server.shutdown()
                 return
 
