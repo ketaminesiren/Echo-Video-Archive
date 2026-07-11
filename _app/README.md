@@ -1,6 +1,6 @@
-# EchoWraith 3.0
+# EchoWraith 3.1.1 · Luna
 
-Restless tarafından hazırlanan EchoWraith; Efsane Uzem hesabındaki video dersleri tarayan, indiren ve gelişmiş bir yerel web panelinde izleten Windows uygulamasıdır.
+Luna tarafından kodlanan ve tasarlanan EchoWraith; Efsane Uzem hesabındaki video dersleri tarayan, indiren ve gelişmiş bir yerel web panelinde izleten Windows uygulamasıdır.
 
 ## Kullanım
 
