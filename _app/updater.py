@@ -88,15 +88,22 @@ def check_update(timeout: float = 8.0) -> dict[str, Any]:
         result["message"] = remote["message"]
         result["date"] = remote["date"]
         current = result["current"]
-        # First run has no stored revision: adopt the current remote sha as the
-        # baseline instead of force-downloading an identical tree.
+        # A package may be weeks older yet have no revision marker. Treat its
+        # first launch as an update so GitHub really is the source of truth;
+        # after the successful apply the marker prevents repeat downloads.
         if not current:
-            _store_revision(remote["sha"])
-            result["current"] = remote["sha"]
+            result["available"] = bool(remote["sha"])
         elif remote["sha"] and remote["sha"] != current:
             result["available"] = True
     except (requests.RequestException, ValueError, KeyError) as error:
-        result["error"] = str(error)
+        message = str(error)
+        if "404" in message:
+            message = (
+                "Güncelleme deposuna erişilemedi (GitHub 404). Depo özelse "
+                "ECHOWRAITH_UPDATE_TOKEN gerekir; son kullanıcı güncellemesi "
+                "için depo veya ayrı güncelleme deposu herkese açık olmalıdır."
+            )
+        result["error"] = message
     return result
 
 
@@ -118,6 +125,8 @@ def _safe_extract(archive: tarfile.TarFile, destination: Path) -> Path:
     root_name = ""
     dest_resolved = destination.resolve()
     for member in archive.getmembers():
+        if member.issym() or member.islnk():
+            raise RuntimeError("Güncelleme arşivinde bağlantı türünde güvenli olmayan bir öğe bulundu.")
         target = (destination / member.name).resolve()
         if not str(target).startswith(str(dest_resolved) + os.sep) and target != dest_resolved:
             raise RuntimeError("Güncelleme arşivinde güvenli olmayan bir yol bulundu.")
