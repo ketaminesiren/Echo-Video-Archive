@@ -139,7 +139,7 @@
     job: { busy: false, paused: false, label: "İşlem yok", detail: "", done: 0, total: 0, title: "" },
     lessons: [],
     profile: {},
-    team: "Restless",
+    team: "Luna",
   };
 
   const tourSteps = [
@@ -226,6 +226,12 @@
   function formatEta(value) {
     const seconds = Math.max(0, Math.round(Number(value) || 0));
     return seconds ? `${formatTime(seconds)} kaldı` : "";
+  }
+
+  function formatPercent(value, precise = false) {
+    const percent = clamp(value, 0, 1) * 100;
+    const digits = precise && percent > 0 && percent < 100 ? 1 : 0;
+    return `${percent.toFixed(digits)}%`;
   }
 
   function formatTime(seconds) {
@@ -717,7 +723,7 @@
     $("#queue-list").innerHTML = selected.length ? selected.map((lesson, index) => {
       const progress = lesson.status === "Tamamlandı" ? 1 : lesson.progress || 0;
       const transfer = lesson.download_speed ? ` · ${formatSpeed(lesson.download_speed)}${lesson.eta_seconds ? ` · ${formatEta(lesson.eta_seconds)}` : ""}` : "";
-      return `<div class="queue-item"><span class="queue-index">${String(index + 1).padStart(2, "0")}</span><span class="queue-copy"><strong>${escapeHtml(lesson.title)}</strong><small>${escapeHtml(lesson.status || "Bekliyor")}${transfer}${lesson.error ? ` · ${escapeHtml(lesson.error)}` : ""}</small></span><span class="queue-progress"><span class="meter"><i style="width:${progress * 100}%"></i></span><span>%${Math.round(progress * 100)}</span></span><button class="retry-button" data-action="${lesson.status === "Hata" ? "retry-one" : "toggle-select"}" data-key="${escapeHtml(lesson.key)}" type="button" aria-label="${lesson.status === "Hata" ? "Tekrar dene" : "Kuyruktan çıkar"}"><span data-icon="${lesson.status === "Hata" ? "refresh" : "close"}"></span></button></div>`;
+      return `<div class="queue-item"><span class="queue-index">${String(index + 1).padStart(2, "0")}</span><span class="queue-copy"><strong>${escapeHtml(lesson.title)}</strong><small>${escapeHtml(lesson.status || "Bekliyor")}${transfer}${lesson.error ? ` · ${escapeHtml(lesson.error)}` : ""}</small></span><span class="queue-progress"><span class="meter"><i style="width:${progress * 100}%"></i></span><span>${formatPercent(progress, true)}</span></span><button class="retry-button" data-action="${lesson.status === "Hata" ? "retry-one" : "toggle-select"}" data-key="${escapeHtml(lesson.key)}" type="button" aria-label="${lesson.status === "Hata" ? "Tekrar dene" : "Kuyruktan çıkar"}"><span data-icon="${lesson.status === "Hata" ? "refresh" : "close"}"></span></button></div>`;
     }).join("") : '<div class="empty-state"><span data-icon="download"></span><h2>Kuyruk boş</h2><p>Kütüphaneden ders seçerek indirmeyi başlat.</p></div>';
     injectIcons($("#queue-list"));
     renderJob();
@@ -728,7 +734,7 @@
     const job = model.job || {};
     const active = model.lessons.find((lesson) => ["İndiriliyor", "Birleştiriliyor", "Dönüştürülüyor", "Kaynak aranıyor"].includes(lesson.status));
     const ratio = job.total ? clamp(((job.done || 0) + (active?.progress || 0)) / job.total, 0, 1) : (active?.progress || 0);
-    $("#job-percent").textContent = `${Math.round(ratio * 100)}%`;
+    $("#job-percent").textContent = formatPercent(ratio, Boolean(job.busy));
     $("#job-ring-progress").style.strokeDashoffset = `${113.1 * (1 - ratio)}`;
     $("#job-label").textContent = job.busy ? (job.paused ? "DURAKLATILDI" : "İŞLEM SÜRÜYOR") : "İŞLEM YOK";
     $("#job-title").textContent = job.title || (job.busy ? job.label : "Kuyruk hazır");
@@ -765,13 +771,13 @@
     summary.classList.toggle("is-busy", Boolean(job.busy));
     $("#log-summary-title").textContent = job.busy ? (active?.title || job.title || job.label || "İşlem sürüyor") : (job.title || "Hazır");
     $("#log-summary-detail").textContent = job.busy ? (job.detail || lastLog?.message || "Lütfen bekleyin…") : (lastLog?.message || "Kütüphaneden ders seçerek indirmeyi başlatabilirsin.");
-    $("#log-summary-percent").textContent = job.busy ? `%${Math.round(ratio * 100)}` : (model.lessons.some((lesson) => lesson.status === "Tamamlandı") ? "✓" : "—");
+    $("#log-summary-percent").textContent = job.busy ? formatPercent(ratio, true) : (model.lessons.some((lesson) => lesson.status === "Tamamlandı") ? "✓" : "—");
   }
 
   function renderHistory() {
     const lessons = model.lessons.filter((lesson) => lesson.last_position > 0 || lesson.completed).sort((a, b) => String(b.last_watched_at).localeCompare(String(a.last_watched_at)));
     $("#history-empty").classList.toggle("is-hidden", lessons.length > 0);
-    $("#history-list").innerHTML = lessons.map((lesson) => `<article class="history-item"><div class="history-thumb">${escapeHtml(initials(lesson.title))}</div><div class="history-copy"><strong>${escapeHtml(lesson.title)}</strong><small>${escapeHtml(categoryOf(lesson))} · ${lesson.last_watched_at ? new Date(lesson.last_watched_at).toLocaleString("tr-TR", { dateStyle: "medium", timeStyle: "short" }) : ""}</small></div><div class="history-progress"><span class="meter"><i style="width:${progressOf(lesson) * 100}%"></i></span><span>%${Math.round(progressOf(lesson) * 100)}</span></div><button class="button secondary compact" data-action="watch-lesson" data-key="${escapeHtml(lesson.key)}" type="button"><span data-icon="play"></span>${lesson.completed ? "Yeniden izle" : "Devam et"}</button></article>`).join("");
+    $("#history-list").innerHTML = lessons.map((lesson) => `<article class="history-item"><div class="history-thumb">${escapeHtml(initials(lesson.title))}</div><div class="history-copy"><strong>${escapeHtml(lesson.title)}</strong><small>${escapeHtml(categoryOf(lesson))} · ${lesson.last_watched_at ? new Date(lesson.last_watched_at).toLocaleString("tr-TR", { dateStyle: "medium", timeStyle: "short" }) : ""}</small></div><div class="history-progress"><span class="meter"><i style="width:${progressOf(lesson) * 100}%"></i></span><span>${formatPercent(progressOf(lesson))}</span></div><button class="button secondary compact" data-action="watch-lesson" data-key="${escapeHtml(lesson.key)}" type="button"><span data-icon="play"></span>${lesson.completed ? "Yeniden izle" : "Devam et"}</button></article>`).join("");
     injectIcons($("#history-list"));
   }
 
@@ -931,6 +937,7 @@
     $("#tour-text").textContent = step.text;
     $("#tour-dots").innerHTML = tourSteps.map((_item, index) => `<i class="${index === ui.tourIndex ? "is-active" : ""}"></i>`).join("");
     $("#tour-next").textContent = ui.tourIndex + 1 >= tourSteps.length ? "EchoWraith’i aç" : "Devam et";
+    $(".tour-art").dataset.pose = String(ui.tourIndex % 4);
   }
 
   function closeTour() {
@@ -1144,7 +1151,17 @@
   function processEvent(kind, payload) {
     if (kind === "log") { ui.logs.push(payload); if (ui.logs.length > 1000) ui.logs.splice(0, 200); renderLogs(); if (ui.view === "diagnostics") renderDiagnostics(); return; }
     if (kind === "status") { model.job.title = String(payload || ""); renderJob(); return; }
-    if (kind === "stage") { model.job.detail = payload.message || payload.stage; renderJob(); if (ui.view === "diagnostics") renderDiagnostics(); return; }
+    if (kind === "stage") {
+      model.job.detail = payload.message || payload.stage;
+      if (payload.lesson_key && Number.isFinite(Number(payload.progress))) {
+        const lesson = model.lessons.find((item) => item.key === payload.lesson_key);
+        if (lesson) lesson.progress = clamp(payload.progress, 0, 1);
+      }
+      renderJob();
+      if (ui.view === "downloads") renderDownloads();
+      if (ui.view === "diagnostics") renderDiagnostics();
+      return;
+    }
     if (kind === "recovery") { showRecovery(payload); return; }
     if (kind === "profile_update") { model.profile = payload || {}; renderProfile(); return; }
     if (kind === "auth_ok") { model.authenticated = true; renderSettings(); toast("Oturum hazır", "Site bağlantısı başarıyla kuruldu.", "success"); return; }
