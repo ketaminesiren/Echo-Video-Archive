@@ -1770,6 +1770,10 @@ class DownloadEngine:
             "AMD AMF": "h264_amf",
         }
         encoder = encoder_map.get(self.settings.encoder, "libx264")
+        # The frame-capture phase spins up one headless Chrome per worker and is
+        # the slowest part of a BBB render, so scale it to the machine instead of
+        # pinning two workers. Capped so a many-core host does not exhaust RAM.
+        parallel_chromes = max(2, min(os.cpu_count() or 2, 4))
         command = locate_bbb_cli() + [
             source.source_url,
             "--ffmpeg-location",
@@ -1787,7 +1791,7 @@ class DownloadEngine:
             "--crf",
             "23",
             "--max-parallel-chromes",
-            "2",
+            str(parallel_chromes),
             "--keep-tmp-files",
             "--skip-webcam",
         ]
@@ -1808,6 +1812,7 @@ class DownloadEngine:
                 command,
                 lesson,
                 extra_env=process_env,
+                stall_timeout=900.0,
             )
         except RuntimeError as first_error:
             last_error = first_error
@@ -1825,7 +1830,7 @@ class DownloadEngine:
                 command[encoder_index] = "libx264"
                 command[preset_index] = "veryfast"
                 try:
-                    self._run_process(command, lesson, extra_env=process_env)
+                    self._run_process(command, lesson, extra_env=process_env, stall_timeout=900.0)
                     last_error = None
                 except RuntimeError as software_error:
                     last_error = software_error
@@ -1856,7 +1861,7 @@ class DownloadEngine:
                 if "--skip-cert-verify" not in command:
                     command.append("--skip-cert-verify")
                 try:
-                    self._run_process(command, lesson, extra_env=process_env)
+                    self._run_process(command, lesson, extra_env=process_env, stall_timeout=900.0)
                     last_error = None
                 except RuntimeError as certificate_retry_error:
                     last_error = certificate_retry_error
@@ -1884,7 +1889,7 @@ class DownloadEngine:
                 if "--allow-insecure-ssl" not in command:
                     command.append("--allow-insecure-ssl")
                 try:
-                    self._run_process(command, lesson, extra_env=process_env)
+                    self._run_process(command, lesson, extra_env=process_env, stall_timeout=900.0)
                     last_error = None
                 except RuntimeError as protocol_retry_error:
                     last_error = protocol_retry_error
@@ -1902,7 +1907,7 @@ class DownloadEngine:
                 target.unlink(missing_ok=True)
                 if "--use-all-ciphers" not in command:
                     command.append("--use-all-ciphers")
-                self._run_process(command, lesson, extra_env=process_env)
+                self._run_process(command, lesson, extra_env=process_env, stall_timeout=900.0)
                 last_error = None
 
             if last_error is not None:
@@ -1964,7 +1969,30 @@ class DownloadEngine:
         except OSError:
             pass
 
-    def _run_process(self, command: list[str], lesson: Lesson, extra_env: Optional[dict[str, str]] = None) -> None:
+    def _terminate_process(self, process: Optional[subprocess.Popen[str]] = None) -> None:
+        process = process or self.current_process
+        if process is None or process.poll() is not None:
+            return
+        try:
+            process.terminate()
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            try:
+                process.kill()
+                process.wait(timeout=10)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _run_process(
+        self,
+        command: list[str],
+        lesson: Lesson,
+        extra_env: Optional[dict[str, str]] = None,
+        *,
+        stall_timeout: float = 600.0,
+    ) -> None:
         creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
         env = os.environ.copy()
         env["PYTHONUTF8"] = "1"
@@ -1981,15 +2009,53 @@ class DownloadEngine:
             creationflags=creationflags,
             env=env,
         )
+        process = self.current_process
         started = time.monotonic()
         last_emit = 0.0
         last_progress = -1.0
         tail: deque[str] = deque(maxlen=12)
+
+        # ffmpeg/bbb-dl emit progress on a carriage return without a trailing
+        # newline, so iterating the pipe can block indefinitely with no way to
+        # notice a wedged child or an in-flight Stop. A daemon reader thread
+        # feeds a queue we poll with a timeout; that lets us honour Stop within
+        # a second and treat a long silence as a stall instead of hanging here
+        # for the rest of the session.
+        line_queue: "queue.Queue[Optional[str]]" = queue.Queue(maxsize=8192)
+
+        def _pump() -> None:
+            try:
+                assert process.stdout
+                for raw in process.stdout:
+                    line_queue.put(raw)
+            except Exception:
+                pass
+            finally:
+                line_queue.put(None)
+
+        reader = threading.Thread(target=_pump, name="echo-proc-reader", daemon=True)
+        reader.start()
+        last_activity = time.monotonic()
         try:
-            assert self.current_process.stdout
-            for raw in self.current_process.stdout:
+            while True:
+                try:
+                    raw = line_queue.get(timeout=1.0)
+                except queue.Empty:
+                    if self.stop_event.is_set():
+                        self._terminate_process(process)
+                        raise CancelledError("Dönüştürme durduruldu.")
+                    if stall_timeout and (time.monotonic() - last_activity) > stall_timeout:
+                        self._terminate_process(process)
+                        summary = " | ".join(tail)[-1200:]
+                        raise RuntimeError(
+                            f"Dönüştürücü {int(stall_timeout)} saniye boyunca ilerleme bildirmedi ve durduruldu. {summary}"
+                        )
+                    continue
+                if raw is None:
+                    break
+                last_activity = time.monotonic()
                 if self.stop_event.is_set():
-                    self.current_process.terminate()
+                    self._terminate_process(process)
                     raise CancelledError("Dönüştürme durduruldu.")
                 line = strip_ansi(raw).strip()
                 if not line:
@@ -2040,11 +2106,13 @@ class DownloadEngine:
                     )
                     last_emit = now
                     last_progress = value
-            code = self.current_process.wait()
+            code = process.wait()
+            reader.join(timeout=5)
             if code != 0:
                 summary = " | ".join(tail)[-1200:]
                 raise RuntimeError(f"Dönüştürücü hata koduyla kapandı: {code}. {summary}")
         finally:
+            self._terminate_process(process)
             self.current_process = None
 
     @staticmethod
