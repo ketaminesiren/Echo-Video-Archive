@@ -38,7 +38,7 @@
             <span data-icon="history"></span><span>İzleme Geçmişi</span>
           </button>
           <button class="nav-item" data-view="study" type="button">
-            <span data-icon="brain"></span><span>Transkript & Test</span>
+            <span data-icon="brain"></span><span>Transkript & Test</span><b class="nav-beta">Deneysel</b>
           </button>
           <button class="nav-item" data-view="diagnostics" type="button">
             <span data-icon="pulse"></span><span>Tanılama</span>
@@ -189,6 +189,7 @@
                 <div id="transcript-panel" class="companion-panel">
                   <div id="player-transcript-list" class="transcript-mini-list"></div>
                   <button class="button primary compact transcript-create" data-action="transcribe-current" type="button"><span data-icon="brain"></span>Transkript oluştur</button>
+                  <small class="beta-note">Deneysel özellik · sonuçlar zaman zaman eksik olabilir.</small>
                 </div>
               </article>
             </aside>
@@ -220,7 +221,7 @@
 
         <section id="study-view" class="view" data-view-panel="study">
           <div class="page-heading study-heading">
-            <div><span class="eyebrow">YEREL YAPAY ZEKÂ ÇALIŞMA ALANI</span><h1>Transkript & Test</h1><p>İndirdiğin dersi yazıya çevir, ardından çoktan seçmeli testle kendini ölç.</p></div>
+            <div><span class="eyebrow">YEREL YAPAY ZEKÂ ÇALIŞMA ALANI</span><h1>Transkript & Test <span class="beta-badge">Deneysel</span></h1><p>İndirdiğin dersi yazıya çevir, ardından çoktan seçmeli testle kendini ölç. Bu özellik hâlâ geliştiriliyor; sonuçlar zaman zaman eksik veya hatalı olabilir.</p></div>
             <div class="heading-actions"><button class="button secondary" data-action="open-help-study" type="button"><span data-icon="help"></span>Nasıl çalışır?</button></div>
           </div>
           <div class="study-toolbar">
@@ -244,8 +245,8 @@
 
         <section id="help-view" class="view" data-view-panel="help">
           <div class="help-hero"><div><span class="eyebrow">ECHO’NUN REHBERİ</span><h1>Teknik bilgi gerekmeden kullan</h1><p>Şefim, ders arşivinin sana ihtiyacı var. Aşağıdaki dört adımı sırayla uygula; geri kalanını EchoWraith halleder.</p><button class="button primary" data-action="replay-tour" type="button"><span data-icon="spark"></span>Tanıtımı yeniden başlat</button></div><img src="./assets/echo-mascot.webp" alt="EchoWraith rehberi Echo" /></div>
-          <div class="help-steps"><article><b>1</b><span><strong>Hesabını bağla</strong><small>Ayarlar’a gir, sitedeki e-posta ve şifreni yaz. Şifre kaydedilmez.</small></span></article><article><b>2</b><span><strong>Dersleri tara</strong><small>Kütüphanedeki “Dersleri tara” düğmesine bas. Tarayıcı yalnızca gerekirse görünür.</small></span></article><article><b>3</b><span><strong>Seç ve indir</strong><small>İstediğin dersleri işaretleyip “Seçilenleri indir” de. Hız, yüzde ve kalan süreyi İndirmeler’de izle.</small></span></article><article><b>4</b><span><strong>İzle ve test çöz</strong><small>Ana video, webcam ve sohbet senkron açılır. İstersen transkript ve test de oluştur.</small></span></article></div>
-          <div class="help-faq"><details open><summary>Bir hata olursa ne yapacağım?</summary><p>Önce bekle: EchoWraith bağlantı, oturum, tarayıcı, indirme ve video onarım yöntemlerini otomatik dener. Çözemezse Tanılama’dan destek paketini indirip paylaşabilirsin.</p></details><details><summary>Chrome penceresi neden bazen açılıyor?</summary><p>İlk tercih görünmeyen arka plan modudur. Site giriş veya oynatıcı erişimi için bunu kabul etmezse görünür pencere son çare olarak açılır ve işlem bitince kapanır.</p></details><details><summary>Transkript internete yükleniyor mu?</summary><p>Hayır. Konuşma tanıma bilgisayarında çalışır. İlk kullanımda model hazırlanırken biraz beklemek normaldir.</p></details><details><summary>İndirilenleri nasıl silerim?</summary><p>Kütüphanede dersleri seçip “Seçilenleri sil” düğmesine bas. Onay vermeden hiçbir dosya silinmez.</p></details></div>
+          <div class="help-steps"><article><b>1</b><span><strong>Hesabını bağla</strong><small>Ayarlar’a gir, sitedeki e-posta ve şifreni yaz, “Oturumu aç” de. Şifre kaydedilmez.</small></span></article><article><b>2</b><span><strong>Dersleri tara</strong><small>Kütüphanedeki “Dersleri tara” düğmesine bas. Tüm ders listen otomatik bulunur.</small></span></article><article><b>3</b><span><strong>Seç ve indir</strong><small>İstediğin dersleri işaretleyip “Seçilenleri indir” de. Hız, yüzde ve kalan süreyi İndirmeler’de izle.</small></span></article><article><b>4</b><span><strong>İzle</strong><small>Ana video, öğretmen kamerası ve sohbet senkron açılır. Oynatma hızı, 10 sn ileri-geri, not alma ve kaldığın yerden devam hazır.</small></span></article></div>
+          <div class="help-faq"><details open><summary>Dersi izlerken hangi düğmeler var?</summary><p>Alt çubukta oynat/duraklat, 10 sn geri-ileri, ses, oynatma hızı ve yer imi (not) bulunur. Sağ taraftaki panelden sohbeti okuyabilir, kendi notlarını ekleyebilir ve öğretmen kamerasını küçültüp büyütebilirsin. Bir sohbet mesajına dokununca video o ana atlar.</p></details><details><summary>“Odak Modu” ne işe yarar?</summary><p>Alt çubuktaki Odak Modu düğmesi menüleri ve sohbeti gizleyip yalnızca ders videosunu ekranı kaplayacak şekilde büyütür; öğretmen kamerası küçük bir köşe penceresi olarak açık kalır. Çıkmak için düğmeye yeniden dokun ya da klavyeden Esc’e bas. Yanındaki düğme ise tam ekran açar.</p></details><details><summary>Kaldığım yere nasıl dönerim?</summary><p>Nerede bıraktığın otomatik kaydedilir. Kütüphanenin üstündeki “Kaldığın yerden” kartından veya soldaki “İzleme Geçmişi” bölümünden tek dokunuşla devam edebilirsin.</p></details><details><summary>Transkript ve test nedir? (Deneysel)</summary><p>“Transkript &amp; Test” bölümünde indirdiğin bir dersi yazıya çevirip kendine çoktan seçmeli test çıkarabilirsin; her şey bu bilgisayarda çalışır, internete yüklenmez. Bu özellik hâlâ geliştiriliyor (deneysel), bu yüzden sonuçlar zaman zaman eksik veya hatalı olabilir.</p></details><details><summary>Bir hata olursa ne yapacağım?</summary><p>Önce bekle: EchoWraith bağlantı, oturum, tarayıcı, indirme ve video onarım yöntemlerini otomatik dener. Çözemezse Tanılama’dan destek paketini indirip paylaşabilirsin.</p></details><details><summary>İndirilenleri nasıl silerim?</summary><p>Kütüphanede dersleri seçip “Seçilenleri sil” düğmesine bas. Onay vermeden hiçbir dosya silinmez.</p></details></div>
         </section>
       </main>
     </div>

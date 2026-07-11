@@ -52,6 +52,10 @@ BASE_URL = "https://efsaneuzem.com"
 LOGIN_URL = f"{BASE_URL}/sistemegir.php"
 COURSES_URL = f"{BASE_URL}/derslerim.php"
 
+# Statuses that only make sense while the worker thread is actively driving a
+# lesson. If one is seen at rest (e.g. after a restart) it is stale.
+TRANSIENT_STATUSES = frozenset({"İndiriliyor", "Birleştiriliyor", "Dönüştürülüyor", "Kaynak aranıyor"})
+
 if os.name == "nt":
     _LOCAL_ROOT = Path(os.getenv("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
     DATA_ROOT = _LOCAL_ROOT / "EchoWraith"
@@ -305,7 +309,23 @@ class StateStore:
                 for item in data.get("lessons", [])
                 if isinstance(item, dict) and item.get("key")
             }
-            if had_persisted_sources:
+            # No worker runs at load time, so any transient "in progress" status
+            # left over from a previous session (e.g. the app was closed mid
+            # "Birleştiriliyor") is stale and would otherwise stick forever with
+            # no way to advance. Reconcile it against what is actually on disk.
+            healed = False
+            for lesson in self.lessons.values():
+                if lesson.status in TRANSIENT_STATUSES:
+                    if lesson.output_path and Path(lesson.output_path).is_file():
+                        lesson.status = "Tamamlandı"
+                        lesson.progress = 1.0
+                    else:
+                        lesson.status = "Bekliyor"
+                        lesson.progress = 0.0
+                    lesson.download_speed = 0.0
+                    lesson.eta_seconds = 0.0
+                    healed = True
+            if had_persisted_sources or healed:
                 self.save()
         except Exception:
             backup = self.path.with_suffix(f".bozuk-{int(time.time())}.json")
@@ -1325,6 +1345,7 @@ class DownloadEngine:
         self.ffmpeg: Optional[str] = None
         self.ffprobe: Optional[str] = None
         self.current_process: Optional[subprocess.Popen[str]] = None
+        self._encoder_cache: dict[str, bool] = {}
 
     def check_control(self) -> None:
         self.site.check_control()
@@ -1746,6 +1767,62 @@ class DownloadEngine:
             except OSError:
                 pass
 
+    def _probe_encoder(self, encoder: str) -> bool:
+        """Encode a tiny throwaway clip to learn whether a hardware encoder is
+        actually usable on this machine (correct driver, GPU present, etc.)."""
+        self.ensure_tools()
+        assert self.ffmpeg
+        command = [
+            self.ffmpeg,
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=size=128x72:rate=1:duration=1",
+            "-frames:v",
+            "1",
+            "-c:v",
+            encoder,
+            "-f",
+            "null",
+            "-",
+        ]
+        creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+        try:
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                timeout=45,
+                creationflags=creationflags,
+            )
+            return result.returncode == 0
+        except (subprocess.TimeoutExpired, OSError):
+            return False
+
+    def _usable_encoder(self, encoder: str, lesson: Lesson) -> str:
+        """Fall back to libx264 up front when the requested hardware encoder is
+        not available, instead of discovering it only after a full, slow render
+        fails partway through."""
+        if encoder == "libx264":
+            return encoder
+        available = self._encoder_cache.get(encoder)
+        if available is None:
+            available = self._probe_encoder(encoder)
+            self._encoder_cache[encoder] = available
+        if available:
+            return encoder
+        lesson.recovery_count += 1
+        self.sink.recovery(
+            "Seçili donanım kodlayıcı bu bilgisayarda kullanılamıyor; uyumlu işlemci kodlayıcısına (libx264) geçildi.",
+            code="ENCODER_UNAVAILABLE",
+            suggestion="İşlem libx264 ile sürdürülecek; ayrıca Ayarlar’dan kodlayıcıyı değiştirebilirsiniz.",
+            lesson_key=lesson.key,
+            active=False,
+        )
+        return "libx264"
+
     def download_bbb(self, source: SourceInfo, target: Path, lesson: Lesson, cookies: list[dict[str, Any]]) -> None:
         self.ensure_tools()
         assert self.ffmpeg and self.ffprobe
@@ -1769,7 +1846,7 @@ class DownloadEngine:
             "Intel Quick Sync": "h264_qsv",
             "AMD AMF": "h264_amf",
         }
-        encoder = encoder_map.get(self.settings.encoder, "libx264")
+        encoder = self._usable_encoder(encoder_map.get(self.settings.encoder, "libx264"), lesson)
         # The frame-capture phase spins up one headless Chrome per worker and is
         # the slowest part of a BBB render, so scale it to the machine instead of
         # pinning two workers. Capped so a many-core host does not exhaust RAM.

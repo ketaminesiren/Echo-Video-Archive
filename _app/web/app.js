@@ -106,11 +106,16 @@
   };
 
   const tourSteps = [
-    { title: "Şefim, arşivin sana ihtiyacı var.", text: "Ben Echo. Site hesabını bağlayıp derslerini düzenli, çevrimdışı ve kullanışlı bir arşive dönüştüreceğiz." },
-    { title: "Önce hesabını güvenle bağla.", text: "Ayarlar’dan e-posta ve şifreni bir kez gir. Şifre hiçbir dosyaya veya loga yazılmaz; girişten sonra bellekten temizlenir." },
-    { title: "Dersleri tara, istediklerini seç.", text: "EchoWraith önce görünmeyen arka plan modunu dener. Site izin vermezse görünür pencereyi yalnızca gerektiği kadar açar ve sonra kapatır." },
-    { title: "İndir, izle, yazıya çevir ve test çöz.", text: "Ana video, öğretmen kamerası ve sohbet ayrı ama senkron kalır. Transkript ve çoktan seçmeli test de cihazında hazırlanır." },
-    { title: "Hazırsın, şefim.", text: "Bir sorun olursa bekle; otomatik çözümler sırayla denenir. Gerekirse Tanılama bölümündeki destek paketini bana gönderebilirsin." },
+    { title: "Şefim, arşivin sana ihtiyacı var.", text: "Ben Echo. Adım adım göstereceğim; hiçbir teknik bilgiye gerek yok. Site hesabını bağlayıp derslerini düzenli ve çevrimdışı bir arşive dönüştüreceğiz." },
+    { title: "1) Önce hesabını bağla.", text: "Sağ üstteki dişli (Ayarlar) düğmesine gir, Efsane Uzem e-posta ve şifreni bir kez yaz, “Oturumu aç” de. Şifren hiçbir yere kaydedilmez." },
+    { title: "2) Dersleri tara.", text: "Kütüphanedeki “Dersleri tara” düğmesine bas. Tüm ders listen otomatik bulunur. Gerekirse kısa bir tarayıcı penceresi açılıp kendiliğinden kapanır." },
+    { title: "3) Seç ve indir.", text: "İstediğin derslerin köşesindeki kutucuğu işaretle, sonra “Seçilenleri indir” de. Hızı, yüzdeyi ve kalan süreyi “İndirmeler” bölümünde canlı izleyebilirsin." },
+    { title: "4) Dersi izle.", text: "İndirilen bir derse tıkla. Ana ders videosu, öğretmen kamerası ve sohbet ayrı ama tam senkron oynar. Oynat/duraklat, 10 sn ileri-geri ve oynatma hızını alttaki çubuktan kullan." },
+    { title: "Sağdaki panel: sohbet, notlar, kamera.", text: "Sağ tarafta dersin sohbetini okuyabilir, istediğin ana kendi notunu ekleyebilir ve öğretmen kamerasını küçültüp büyütebilirsin. Bir mesaja tıklarsan video o ana gider." },
+    { title: "Odak Modu ve Tam Ekran.", text: "Alttaki “Odak Modu” düğmesi her şeyi gizleyip yalnızca ders videosunu büyütür; kamera küçük bir köşe penceresi olarak kalır. Çıkmak için Esc’e bas. Yanındaki düğme ise Tam Ekran açar." },
+    { title: "Kaldığın yerden devam.", text: "Nerede bıraktığın otomatik hatırlanır. Kütüphanenin üstündeki “Kaldığın yerden” kartından veya “İzleme Geçmişi” bölümünden tek dokunuşla devam edebilirsin." },
+    { title: "Transkript ve Test (Deneysel).", text: "“Transkript & Test” bölümünde bir dersi yazıya çevirip kendine çoktan seçmeli test çıkarabilirsin. Bu özellik hâlâ geliştiriliyor (deneysel); sonuçlar zaman zaman eksik olabilir." },
+    { title: "Hazırsın, şefim.", text: "Bir sorun olursa bekle; EchoWraith uygun çözümü kendi dener. Bu rehberi istediğin an Ayarlar’dan yeniden başlatabilirsin. İyi çalışmalar!" },
   ];
 
   const demoChats = [
@@ -298,6 +303,7 @@
       ui.playerCleanup();
       ui.playerCleanup = null;
     }
+    if (leavingWatch) exitTheater();
     if (view === "watch" && key) ui.currentKey = key;
     ui.view = view;
     $$('[data-view-panel]').forEach((panel) => panel.classList.toggle("is-active", panel.dataset.viewPanel === view));
@@ -564,6 +570,9 @@
     const previewWebcam = $("#preview-webcam");
     const hasWebcam = PREVIEW ? Boolean(lesson.has_webcam) : Boolean(lesson.has_webcam || lesson.webcam_url);
     $("#webcam-card").classList.toggle("is-hidden", !hasWebcam);
+    $("#webcam-card").classList.remove("is-collapsed");
+    $("#media-rail").classList.remove("webcam-collapsed");
+    $('[data-action="hide-webcam"]')?.classList.remove("is-active");
     $("#media-rail").classList.toggle("no-webcam", !hasWebcam);
     $("#watch-layout").classList.toggle("no-rail", false);
     if (PREVIEW) {
@@ -849,7 +858,7 @@
   }
 
   function showTour(force = false) {
-    if (!force && localStorage.getItem("echowraith-tour-3") === "done") return;
+    if (!force && localStorage.getItem("echowraith-tour-4") === "done") return;
     ui.tourIndex = 0;
     $("#tour-overlay").classList.remove("is-hidden");
     renderTour();
@@ -864,7 +873,7 @@
   }
 
   function closeTour() {
-    localStorage.setItem("echowraith-tour-3", "done");
+    localStorage.setItem("echowraith-tour-4", "done");
     $("#tour-overlay").classList.add("is-hidden");
   }
 
@@ -948,6 +957,12 @@
     if (!dialog.open) dialog.showModal();
   }
 
+  function exitTheater() {
+    if (!document.body.classList.contains("theater-mode")) return;
+    document.body.classList.remove("theater-mode");
+    $('[data-action="theater"]')?.classList.remove("is-active");
+  }
+
   async function handleAction(action, target) {
     const key = target.dataset.key;
     if (action === "go-library") return setView("library");
@@ -988,9 +1003,9 @@
     if (action === "open-transcript-time") { const time = Number(target.dataset.time) || 0; const lessonKey = ui.studyKey || ui.currentKey; if (lessonKey) { setView("watch", lessonKey); setTimeout(() => setMediaTime(time), 80); } return; }
     if (action === "open-help-study") return setView("help");
     if (action === "pip") { if (PREVIEW) return toast("Resim içinde resim", "Gerçek video açıldığında kullanılabilir.", "info"); const video = $("#main-video"); if (document.pictureInPictureElement) document.exitPictureInPicture(); else if (document.pictureInPictureEnabled) video.requestPictureInPicture().catch(() => toast("PiP açılamadı", "Tarayıcı bu video için izin vermedi.", "error")); return; }
-    if (action === "theater") { document.body.classList.toggle("theater-mode"); target.classList.toggle("is-active", document.body.classList.contains("theater-mode")); return; }
+    if (action === "theater") { const on = document.body.classList.toggle("theater-mode"); target.classList.toggle("is-active", on); toast("Odak modu", on ? "Yalnızca ders videosuna odaklandın. Çıkmak için Esc’e bas veya düğmeye yeniden dokun." : "Normal görünüme dönüldü.", "info", 2600); return; }
     if (action === "fullscreen") { const shell = $("#main-media-shell"); if (!document.fullscreenElement) shell.requestFullscreen?.(); else document.exitFullscreen?.(); return; }
-    if (action === "hide-webcam") { $("#webcam-card").classList.toggle("is-hidden"); $("#media-rail").classList.toggle("no-webcam", $("#webcam-card").classList.contains("is-hidden")); return; }
+    if (action === "hide-webcam") { const card = $("#webcam-card"); const collapsed = card.classList.toggle("is-collapsed"); $("#media-rail").classList.toggle("webcam-collapsed", collapsed); target.classList.toggle("is-active", collapsed); target.setAttribute("aria-label", collapsed ? "Kamerayı göster" : "Kamerayı gizle"); return; }
     if (action === "toggle-chat-follow") { ui.chatFollow = !ui.chatFollow; target.classList.toggle("is-active", ui.chatFollow); toast("Sohbet takibi", ui.chatFollow ? "Oynatılırken etkin mesaj izlenecek." : "Otomatik kaydırma kapatıldı.", "info"); return; }
     if (action === "pause-job") { try { await request("/pause", { method: "POST" }); await refreshState(true); } catch (error) { toast("İşlem değiştirilemedi", error.message, "error"); } return; }
     if (action === "cancel-job") return showConfirm("İşlem durdurulsun mu?", "Yarım dosyalar korunur; daha sonra kaldığı yerden devam edebilirsin.", "Durdur", async () => { await request("/cancel", { method: "POST" }); await refreshState(true); toast("Durdurma isteği gönderildi", "Aktif adım güvenli biçimde kapatılıyor.", "info"); });
@@ -1089,6 +1104,7 @@
     document.addEventListener("keydown", (event) => {
       const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName);
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); $("#global-search").focus(); return; }
+      if (event.key === "Escape" && document.body.classList.contains("theater-mode")) { event.preventDefault(); exitTheater(); return; }
       if (typing || ui.view !== "watch") return;
       const key = event.key.toLowerCase();
       if (key === " " || key === "k") { event.preventDefault(); setPlaying(mediaPaused()); }
