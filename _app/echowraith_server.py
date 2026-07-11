@@ -24,6 +24,7 @@ from urllib.parse import unquote, urlsplit
 import requests
 
 import echowraith_core as core
+import updater
 from diagnostics import sanitize
 from study_tools import load_quiz, load_transcript
 
@@ -36,6 +37,10 @@ STORE = core.StateStore()
 BROKER = core.EventBroker()
 WORKER = core.WorkerController(STORE, BROKER)
 LAST_CLIENT_SEEN = time.monotonic()
+# Set when the panel tab reports it is closing (pagehide beacon). While set and
+# no other client checks in, the app shuts itself down quickly instead of
+# lingering in the background eating memory.
+CLIENT_LEFT_AT: "float | None" = None
 SERVER_INSTANCE: "EchoWraithHTTPServer | None" = None
 
 
@@ -369,8 +374,11 @@ class EchoWraithHandler(BaseHTTPRequestHandler):
                 self.wfile.write(chunk)
 
     def _api_get(self, path: str, query: str, head_only: bool = False) -> bool:
-        global LAST_CLIENT_SEEN
+        global LAST_CLIENT_SEEN, CLIENT_LEFT_AT
         LAST_CLIENT_SEEN = time.monotonic()
+        # Any live request means a panel is open again; cancel a pending
+        # auto-close (e.g. the tab was only refreshed, or another tab is active).
+        CLIENT_LEFT_AT = None
         if path == "/api/health":
             self._json({"ok": True, "app": core.APP_NAME, "version": core.APP_VERSION, "team": core.APP_TEAM}, head_only=head_only)
             return True
@@ -385,6 +393,9 @@ class EchoWraithHandler(BaseHTTPRequestHandler):
             since = int(match.group(1)) if match else 0
             items, newest = BROKER.read_since(since, timeout=20.0 if not head_only else 0.0)
             self._json({"events": items, "last_id": newest}, head_only=head_only)
+            return True
+        if path == "/api/update/check":
+            self._json(updater.check_update(), head_only=head_only)
             return True
         if path == "/api/logs":
             match = re.search(r"(?:^|&)limit=(\d+)", query)
@@ -484,7 +495,7 @@ class EchoWraithHandler(BaseHTTPRequestHandler):
             return True
         if method == "PATCH" and path == "/api/settings":
             allowed_quality = {"Hızlı (720p)", "Dengeli (720p)", "Yüksek (1080p)"}
-            allowed_encoder = {"libx264 (uyumlu)", "NVIDIA NVENC", "Intel Quick Sync", "AMD AMF"}
+            allowed_encoder = {"Otomatik (en hızlı)", "libx264 (uyumlu)", "NVIDIA NVENC", "Intel Quick Sync", "AMD AMF"}
             with STORE.lock:
                 output = str(data.get("output_dir", STORE.settings.output_dir)).strip()
                 if output:
@@ -500,6 +511,7 @@ class EchoWraithHandler(BaseHTTPRequestHandler):
                 STORE.settings.save_chat = bool(data.get("save_chat", STORE.settings.save_chat))
                 STORE.settings.headless_first = bool(data.get("headless_first", STORE.settings.headless_first))
                 STORE.settings.auto_thumbnail = bool(data.get("auto_thumbnail", STORE.settings.auto_thumbnail))
+                STORE.settings.auto_update = bool(data.get("auto_update", STORE.settings.auto_update))
                 STORE.settings.segment_threads = max(1, min(int(data.get("segment_threads", STORE.settings.segment_threads) or 1), 8))
                 STORE.settings.idle_shutdown_minutes = max(1, min(int(data.get("idle_shutdown_minutes", STORE.settings.idle_shutdown_minutes) or 3), 60))
                 transcript_model = str(data.get("transcript_model", STORE.settings.transcript_model))
@@ -529,6 +541,31 @@ class EchoWraithHandler(BaseHTTPRequestHandler):
         if method == "POST" and path == "/api/open-logs":
             core.LOG_DIR.mkdir(parents=True, exist_ok=True)
             open_path(core.LOG_DIR)
+            self._json({"ok": True})
+            return True
+        if method == "POST" and path == "/api/update/apply":
+            if WORKER.busy:
+                raise RuntimeError("Aktif işlem bitmeden güncelleme yapılamaz.")
+            status = updater.check_update()
+            if not status.get("available"):
+                self._json({"ok": True, "applied": False, "message": "EchoWraith zaten güncel."})
+                return True
+            outcome = updater.apply_update(status.get("latest", ""))
+            if outcome.get("ok"):
+                core.EventSink(BROKER).log(
+                    "Güncelleme uygulandı; EchoWraith yeni sürümle yeniden başlatılıyor.",
+                    "success",
+                    stage="UPDATE",
+                    code="UPDATE_APPLIED",
+                )
+                self._json({"ok": True, "applied": True, "message": "Güncelleme uygulandı. EchoWraith yeniden başlatılıyor."})
+                threading.Thread(target=lambda: restart_server(delay=1.2), daemon=True, name="echowraith-update-restart").start()
+            else:
+                self._json({"ok": False, "applied": False, "error": outcome.get("error", "Bilinmeyen güncelleme hatası.")}, 409)
+            return True
+        if method == "POST" and path == "/api/leaving":
+            global CLIENT_LEFT_AT
+            CLIENT_LEFT_AT = time.monotonic()
             self._json({"ok": True})
             return True
         if method == "POST" and path == "/api/shutdown":
@@ -662,6 +699,55 @@ def focus_existing() -> bool:
     return False
 
 
+def restart_server(delay: float = 1.0) -> None:
+    """Re-launch the app in place so freshly downloaded code takes effect.
+    Guarded so the relaunched process never immediately auto-updates again."""
+    time.sleep(max(0.0, delay))
+    os.environ["ECHOWRAITH_UPDATED"] = "1"
+    try:
+        if SERVER_INSTANCE is not None:
+            SERVER_INSTANCE.shutdown()
+    except Exception:
+        pass
+    try:
+        os.execv(sys.executable, [sys.executable, *sys.argv])
+    except OSError:
+        # Re-exec is best effort; if it fails the user can relaunch manually.
+        os._exit(0)
+
+
+def maybe_auto_update() -> None:
+    """On launch, if enabled, bring local files up to date with GitHub before
+    serving, then relaunch once. Any failure is non-fatal."""
+    if os.getenv("ECHOWRAITH_UPDATED") == "1":
+        return
+    if not STORE.settings.auto_update:
+        return
+    try:
+        result = updater.check_and_apply(timeout=8.0)
+    except Exception as error:  # never block startup on an update problem
+        core.DIAGNOSTICS.event("WARNING", "UPDATE", "Otomatik güncelleme denetimi yapılamadı.", code="UPDATE_SKIPPED", details=str(error))
+        return
+    if result.get("applied"):
+        core.DIAGNOSTICS.event("INFO", "UPDATE", "Yeni sürüm indirildi; EchoWraith yeniden başlatılıyor.", code="UPDATE_APPLIED")
+        os.environ["ECHOWRAITH_UPDATED"] = "1"
+        try:
+            os.execv(sys.executable, [sys.executable, *sys.argv])
+        except OSError:
+            pass
+
+
+def notify_updates_available() -> None:
+    """Background check that tells the open panel when an update is waiting
+    (used when auto-update is off, or the check raced startup)."""
+    try:
+        status = updater.check_update(timeout=8.0)
+    except Exception:
+        return
+    if status.get("available"):
+        BROKER.put(("update_available", status))
+
+
 def show_fatal_error(message: str) -> None:
     try:
         if os.name == "nt":
@@ -682,6 +768,7 @@ def main() -> int:
     core.DIAGNOSTICS.event("INFO", "BOOT", "Başlangıç denetimleri çalıştırılıyor.", code="BOOT_CHECK")
     if focus_existing():
         return 0
+    maybe_auto_update()
     if not WEB_ROOT.joinpath("index.html").is_file():
         raise RuntimeError("Web paneli dosyaları bulunamadı. Paketi yeniden çıkart.")
     try:
@@ -712,11 +799,17 @@ def main() -> int:
 
     def idle_watchdog() -> None:
         while SERVER_INSTANCE is server:
-            time.sleep(15)
+            time.sleep(5)
+            if WORKER.busy:
+                continue
+            now = time.monotonic()
+            left_at = CLIENT_LEFT_AT
+            explicit_close = left_at is not None and now - left_at > 15
             idle_limit = max(60, int(STORE.settings.idle_shutdown_minutes) * 60)
-            if not WORKER.busy and time.monotonic() - LAST_CLIENT_SEEN > idle_limit:
+            idle_timeout = now - LAST_CLIENT_SEEN > idle_limit
+            if explicit_close or idle_timeout:
                 core.EventSink(BROKER).log(
-                    "Panel kapalı olduğu için gereksiz arka plan işlemleri sonlandırılıyor.",
+                    "Panel kapatıldığı için gereksiz arka plan işlemleri sonlandırılıyor.",
                     "success",
                     stage="CLEANUP",
                     code="IDLE_SHUTDOWN",
@@ -725,6 +818,7 @@ def main() -> int:
                 return
 
     threading.Thread(target=idle_watchdog, daemon=True, name="echowraith-idle-watchdog").start()
+    threading.Thread(target=notify_updates_available, daemon=True, name="echowraith-update-notify").start()
     threading.Timer(0.8, lambda: webbrowser.open(url)).start()
     core.EventSink(BROKER).log("Yerel panel hazır.", "success", stage="BOOT", code="PANEL_READY")
     try:

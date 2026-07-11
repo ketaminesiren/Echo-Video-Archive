@@ -209,7 +209,13 @@
           </div>
           <div class="downloads-grid">
             <article class="queue-card"><div class="section-heading"><div><h2>Kuyruk</h2><span id="queue-summary">0 ders</span></div><button class="button ghost compact" data-action="retry-errors" type="button">Hataları tekrar dene</button></div><div id="queue-list" class="queue-list"></div></article>
-            <article class="log-card"><div class="section-heading"><div><h2>Canlı Günlük</h2><span>Son işlemler</span></div><button class="icon-button compact-icon" data-action="clear-log" type="button" aria-label="Günlüğü temizle"><span data-icon="trash"></span></button></div><div id="log-list" class="log-list"></div></article>
+            <article class="log-card"><div class="section-heading"><div><h2>Durum</h2><span>Şu an ne oluyor?</span></div><div class="log-heading-actions"><button class="text-button" id="log-detail-toggle" data-action="toggle-log-detail" type="button">Detaylandır</button><button class="icon-button compact-icon" data-action="clear-log" type="button" aria-label="Günlüğü temizle"><span data-icon="trash"></span></button></div></div>
+              <div id="log-summary" class="log-summary">
+                <div class="luna-loader"><img src="./assets/echo-mascot.webp" alt="Luna" /><span class="luna-ring"></span></div>
+                <div class="log-summary-copy"><strong id="log-summary-title">Hazır</strong><small id="log-summary-detail">Kütüphaneden ders seçerek indirmeyi başlatabilirsin.</small></div>
+                <strong id="log-summary-percent" class="log-summary-percent">—</strong>
+              </div>
+              <div id="log-list" class="log-list is-hidden"></div></article>
           </div>
         </section>
 
@@ -244,7 +250,7 @@
         </section>
 
         <section id="help-view" class="view" data-view-panel="help">
-          <div class="help-hero"><div><span class="eyebrow">ECHO’NUN REHBERİ</span><h1>Teknik bilgi gerekmeden kullan</h1><p>Şefim, ders arşivinin sana ihtiyacı var. Aşağıdaki dört adımı sırayla uygula; geri kalanını EchoWraith halleder.</p><button class="button primary" data-action="replay-tour" type="button"><span data-icon="spark"></span>Tanıtımı yeniden başlat</button></div><img src="./assets/echo-mascot.webp" alt="EchoWraith rehberi Echo" /></div>
+          <div class="help-hero"><div><span class="eyebrow">LUNA’NIN REHBERİ</span><h1>Teknik bilgi gerekmeden kullan</h1><p>Şefim, ders arşivinin sana ihtiyacı var. Aşağıdaki dört adımı sırayla uygula; geri kalanını EchoWraith halleder.</p><button class="button primary" data-action="replay-tour" type="button"><span data-icon="spark"></span>Tanıtımı yeniden başlat</button></div><img src="./assets/echo-mascot.webp" alt="EchoWraith rehberi Luna" /></div>
           <div class="help-steps"><article><b>1</b><span><strong>Hesabını bağla</strong><small>Ayarlar’a gir, sitedeki e-posta ve şifreni yaz, “Oturumu aç” de. Şifre kaydedilmez.</small></span></article><article><b>2</b><span><strong>Dersleri tara</strong><small>Kütüphanedeki “Dersleri tara” düğmesine bas. Tüm ders listen otomatik bulunur.</small></span></article><article><b>3</b><span><strong>Seç ve indir</strong><small>İstediğin dersleri işaretleyip “Seçilenleri indir” de. Hız, yüzde ve kalan süreyi İndirmeler’de izle.</small></span></article><article><b>4</b><span><strong>İzle</strong><small>Ana video, öğretmen kamerası ve sohbet senkron açılır. Oynatma hızı, 10 sn ileri-geri, not alma ve kaldığın yerden devam hazır.</small></span></article></div>
           <div class="help-faq"><details open><summary>Dersi izlerken hangi düğmeler var?</summary><p>Alt çubukta oynat/duraklat, 10 sn geri-ileri, ses, oynatma hızı ve yer imi (not) bulunur. Sağ taraftaki panelden sohbeti okuyabilir, kendi notlarını ekleyebilir ve öğretmen kamerasını küçültüp büyütebilirsin. Bir sohbet mesajına dokununca video o ana atlar.</p></details><details><summary>“Odak Modu” ne işe yarar?</summary><p>Alt çubuktaki Odak Modu düğmesi menüleri ve sohbeti gizleyip yalnızca ders videosunu ekranı kaplayacak şekilde büyütür; öğretmen kamerası küçük bir köşe penceresi olarak açık kalır. Çıkmak için düğmeye yeniden dokun ya da klavyeden Esc’e bas. Yanındaki düğme ise tam ekran açar.</p></details><details><summary>Kaldığım yere nasıl dönerim?</summary><p>Nerede bıraktığın otomatik kaydedilir. Kütüphanenin üstündeki “Kaldığın yerden” kartından veya soldaki “İzleme Geçmişi” bölümünden tek dokunuşla devam edebilirsin.</p></details><details><summary>Transkript ve test nedir? (Deneysel)</summary><p>“Transkript &amp; Test” bölümünde indirdiğin bir dersi yazıya çevirip kendine çoktan seçmeli test çıkarabilirsin; her şey bu bilgisayarda çalışır, internete yüklenmez. Bu özellik hâlâ geliştiriliyor (deneysel), bu yüzden sonuçlar zaman zaman eksik veya hatalı olabilir.</p></details><details><summary>Bir hata olursa ne yapacağım?</summary><p>Önce bekle: EchoWraith bağlantı, oturum, tarayıcı, indirme ve video onarım yöntemlerini otomatik dener. Çözemezse Tanılama’dan destek paketini indirip paylaşabilirsin.</p></details><details><summary>İndirilenleri nasıl silerim?</summary><p>Kütüphanede dersleri seçip “Seçilenleri sil” düğmesine bas. Onay vermeden hiçbir dosya silinmez.</p></details></div>
         </section>
@@ -265,12 +271,14 @@
           <section class="settings-section">
             <div class="section-heading"><div><h3>İndirme</h3><span>Dosyaların ve dönüştürmenin davranışı.</span></div></div>
             <label><span>Kayıt klasörü</span><div class="input-action"><input id="output-input" type="text" /><button class="button secondary compact" data-action="choose-folder" type="button">Seç</button></div></label>
-            <div class="field-row"><label><span>Kalite</span><select id="quality-input"><option>Hızlı (720p)</option><option>Dengeli (720p)</option><option>Yüksek (1080p)</option></select></label><label><span>Kodlayıcı</span><select id="encoder-input"><option>libx264 (uyumlu)</option><option>NVIDIA NVENC</option><option>Intel Quick Sync</option><option>AMD AMF</option></select></label></div>
+            <div class="field-row"><label><span>Kalite</span><select id="quality-input"><option>Hızlı (720p)</option><option>Dengeli (720p)</option><option>Yüksek (1080p)</option></select></label><label><span>Kodlayıcı</span><select id="encoder-input"><option>Otomatik (en hızlı)</option><option>libx264 (uyumlu)</option><option>NVIDIA NVENC</option><option>Intel Quick Sync</option><option>AMD AMF</option></select></label></div>
             <div class="field-row"><label><span>Paralel indirme parçaları</span><select id="segments-input"><option value="1">1 · En uyumlu</option><option value="2">2 · Dengeli</option><option value="4">4 · Hızlı</option><option value="6">6 · Çok hızlı</option><option value="8">8 · En yüksek</option></select></label><label><span>Transkript modeli</span><select id="transcript-model-input"><option value="tiny">Hızlı</option><option value="base">Dengeli</option><option value="small">Daha doğru</option></select></label></div>
             <label><span>Panel kapanınca arka planı kapat</span><select id="idle-input"><option value="1">1 dakika sonra</option><option value="3">3 dakika sonra</option><option value="5">5 dakika sonra</option><option value="15">15 dakika sonra</option></select></label>
             <label class="switch-row"><span><strong>Sohbeti kaydet</strong><small>Bulunabilen mesajları zaman damgasıyla arşivler.</small></span><input id="chat-switch" type="checkbox" /><i></i></label>
             <label class="switch-row"><span><strong>Önce arka planda dene</strong><small>Site izin vermezse görünür tarayıcı otomatik açılır.</small></span><input id="headless-switch" type="checkbox" /><i></i></label>
             <label class="switch-row"><span><strong>Video önizlemeleri</strong><small>İndirme bitince hafif karartılmış kapak karesi oluşturur.</small></span><input id="thumbnail-switch" type="checkbox" /><i></i></label>
+            <label class="switch-row"><span><strong>Otomatik güncelleme</strong><small>Açılışta GitHub’daki en güncel sürüm denetlenir; gerekiyorsa indirilip uygulanır.</small></span><input id="update-switch" type="checkbox" /><i></i></label>
+            <div class="inline-actions"><button class="button secondary" data-action="check-update" type="button"><span data-icon="refresh"></span>Güncellemeleri denetle</button></div>
           </section>
         </div>
         <footer class="dialog-footer"><div><button class="button ghost" data-action="replay-tour" type="button">Tanıtımı aç</button><button class="button danger-soft" data-action="shutdown-app" type="button">EchoWraith’i kapat</button></div><div><button class="button ghost" value="cancel">Vazgeç</button><button class="button primary" data-action="save-settings" type="button">Ayarları kaydet</button></div></footer>
@@ -279,8 +287,11 @@
 
     <dialog id="shortcuts-dialog" class="dialog shortcuts-dialog">
       <form method="dialog" class="dialog-shell compact-dialog">
-        <header class="dialog-header"><div><span class="eyebrow">OYNUCU</span><h2>Klavye Kısayolları</h2></div><button class="icon-button" value="cancel" aria-label="Kapat"><span data-icon="close"></span></button></header>
-        <div class="shortcut-grid"><span>Oynat / duraklat</span><kbd>Space</kbd><span>10 sn geri / ileri</span><div><kbd>J</kbd><kbd>L</kbd></div><span>Sesi aç / kapat</span><kbd>M</kbd><span>Tam ekran</span><kbd>F</kbd><span>Not ekle</span><kbd>B</kbd><span>Hızı azalt / artır</span><div><kbd>[</kbd><kbd>]</kbd></div><span>Arama</span><kbd>Ctrl K</kbd></div>
+        <header class="dialog-header"><div><span class="eyebrow">OYNATICI</span><h2>Klavye Kısayolları</h2></div><button class="icon-button" value="cancel" aria-label="Kapat"><span data-icon="close"></span></button></header>
+        <div id="shortcut-grid" class="shortcut-grid"></div>
+        <p class="shortcut-hint">Bir kısayolu değiştirmek için tuşuna tıkla, sonra yeni tuşa bas. İptal için Esc.</p>
+        <div class="shortcut-fixed"><span>5 sn geri / ileri</span><div><kbd>←</kbd><kbd>→</kbd></div><span>Arama</span><kbd>Ctrl K</kbd></div>
+        <div class="shortcut-footer"><button class="button ghost compact" data-action="reset-shortcuts" type="button">Varsayılana döndür</button></div>
       </form>
     </dialog>
 
@@ -293,7 +304,7 @@
     </div>
 
     <div id="tour-overlay" class="tour-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="tour-title">
-      <div class="tour-shell"><div class="tour-art"><img src="./assets/echo-mascot.webp" alt="EchoWraith rehberi Echo" /><span class="tour-glow"></span></div><div class="tour-copy"><span class="eyebrow">ECHO · RESTLESS REHBERİ</span><h2 id="tour-title">Şefim, arşivin sana ihtiyacı var.</h2><p id="tour-text">Ben Echo. İlk kurulumu birlikte birkaç kolay adımda tamamlayacağız.</p><div id="tour-dots" class="tour-dots"></div><div class="tour-actions"><button class="button ghost" data-action="skip-tour" type="button">Şimdilik geç</button><button id="tour-next" class="button primary" data-action="next-tour" type="button">Başlayalım</button></div></div></div>
+      <div class="tour-shell"><div class="tour-art"><img src="./assets/echo-mascot.webp" alt="EchoWraith rehberi Luna" /><span class="tour-glow"></span></div><div class="tour-copy"><span class="eyebrow">LUNA · RESTLESS REHBERİ</span><h2 id="tour-title">Şefim, arşivin sana ihtiyacı var.</h2><p id="tour-text">Ben Luna. İlk kurulumu birlikte birkaç kolay adımda tamamlayacağız.</p><div id="tour-dots" class="tour-dots"></div><div class="tour-actions"><button class="button ghost" data-action="skip-tour" type="button">Şimdilik geç</button><button id="tour-next" class="button primary" data-action="next-tour" type="button">Başlayalım</button></div></div></div>
     </div>
 
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>

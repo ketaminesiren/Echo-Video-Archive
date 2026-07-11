@@ -53,6 +53,39 @@
   const escapeHtml = (value = "") => String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
   const clamp = (value, min, max) => Math.min(Math.max(Number(value) || 0, min), max);
 
+  const SHORTCUT_DEFS = [
+    { id: "playPause", label: "Oynat / duraklat", def: " " },
+    { id: "back", label: "10 saniye geri", def: "j" },
+    { id: "forward", label: "10 saniye ileri", def: "l" },
+    { id: "mute", label: "Sesi aç / kapat", def: "m" },
+    { id: "fullscreen", label: "Tam ekran", def: "f" },
+    { id: "bookmark", label: "Bu ana not ekle", def: "b" },
+    { id: "speedDown", label: "Hızı azalt", def: "[" },
+    { id: "speedUp", label: "Hızı artır", def: "]" },
+  ];
+
+  function loadShortcuts() {
+    const defaults = Object.fromEntries(SHORTCUT_DEFS.map((item) => [item.id, item.def]));
+    try {
+      const saved = JSON.parse(localStorage.getItem("echowraith-shortcuts") || "{}");
+      return { ...defaults, ...(saved && typeof saved === "object" ? saved : {}) };
+    } catch (error) {
+      return defaults;
+    }
+  }
+
+  function keyLabel(key) {
+    if (key === " ") return "Space";
+    if (key === "arrowleft") return "←";
+    if (key === "arrowright") return "→";
+    if (key.length === 1) return key.toUpperCase();
+    return key.charAt(0).toUpperCase() + key.slice(1);
+  }
+
+  function normalizeKey(event) {
+    return event.key === " " ? " " : event.key.toLowerCase();
+  }
+
   const ui = {
     view: PREVIEW ? "watch" : "library",
     search: "",
@@ -82,7 +115,10 @@
     quizAnswered: false,
     studyKey: "",
     logFilter: "all",
+    logDetail: false,
     tourIndex: 0,
+    shortcuts: loadShortcuts(),
+    rebinding: null,
   };
 
   let model = {
@@ -91,12 +127,13 @@
       output_dir: "C:\\Users\\Kullanıcı\\Downloads\\EchoWraith Dersleri",
       save_chat: true,
       quality: "Dengeli (720p)",
-      encoder: "libx264 (uyumlu)",
+      encoder: "Otomatik (en hızlı)",
       headless_first: true,
       auto_thumbnail: true,
       segment_threads: 4,
       idle_shutdown_minutes: 3,
       transcript_model: "base",
+      auto_update: true,
     },
     storage: { free: 857 * 1024 ** 3, total: 2 * 1024 ** 4, used: 1.2 * 1024 ** 4 },
     job: { busy: false, paused: false, label: "İşlem yok", detail: "", done: 0, total: 0, title: "" },
@@ -106,7 +143,7 @@
   };
 
   const tourSteps = [
-    { title: "Şefim, arşivin sana ihtiyacı var.", text: "Ben Echo. Adım adım göstereceğim; hiçbir teknik bilgiye gerek yok. Site hesabını bağlayıp derslerini düzenli ve çevrimdışı bir arşive dönüştüreceğiz." },
+    { title: "Şefim, arşivin sana ihtiyacı var.", text: "Ben Luna. Adım adım göstereceğim; hiçbir teknik bilgiye gerek yok. Site hesabını bağlayıp derslerini düzenli ve çevrimdışı bir arşive dönüştüreceğiz." },
     { title: "1) Önce hesabını bağla.", text: "Sağ üstteki dişli (Ayarlar) düğmesine gir, Efsane Uzem e-posta ve şifreni bir kez yaz, “Oturumu aç” de. Şifren hiçbir yere kaydedilmez." },
     { title: "2) Dersleri tara.", text: "Kütüphanedeki “Dersleri tara” düğmesine bas. Tüm ders listen otomatik bulunur. Gerekirse kısa bir tarayıcı penceresi açılıp kendiliğinden kapanır." },
     { title: "3) Seç ve indir.", text: "İstediğin derslerin köşesindeki kutucuğu işaretle, sonra “Seçilenleri indir” de. Hızı, yüzdeyi ve kalan süreyi “İndirmeler” bölümünde canlı izleyebilirsin." },
@@ -258,7 +295,9 @@
       model.lessons.forEach((lesson) => { if ((payload.keys || []).includes(lesson.key)) { lesson.status = "Bekliyor"; lesson.output_path = ""; lesson.thumbnail_url = ""; } });
       return { ok: true, files: 1, records: 0 };
     }
-    if (["/heartbeat", "/open-logs", "/shutdown"].includes(path)) return { ok: true };
+    if (path === "/update/check") return { available: false, current: "demo", latest: "demo", message: "" };
+    if (path === "/update/apply") return { ok: true, applied: false, message: "Önizlemede güncelleme yapılmaz." };
+    if (["/heartbeat", "/open-logs", "/shutdown", "/leaving"].includes(path)) return { ok: true };
     if (path.includes("/progress")) return { ok: true };
     if (path.includes("/bookmark")) return { ok: true };
     if (path === "/settings" && options.method === "PATCH") {
@@ -701,11 +740,32 @@
     const activeCount = model.lessons.filter((lesson) => ["İndiriliyor", "Birleştiriliyor", "Dönüştürülüyor", "Kaynak aranıyor"].includes(lesson.status)).length;
     $("#download-badge").textContent = activeCount;
     $("#download-badge").classList.toggle("is-hidden", !activeCount);
+    renderLogSummary();
   }
 
   function renderLogs() {
     $("#log-list").innerHTML = ui.logs.length ? ui.logs.slice(-250).map((entry) => `<div class="log-entry ${escapeHtml(String(entry.level || "info").toLowerCase())}"><time>${escapeHtml(entry.time || "")}</time><span>${escapeHtml(entry.message || "")}</span></div>`).join("") : '<div class="chat-empty">Henüz günlük kaydı yok.</div>';
     $("#log-list").scrollTop = $("#log-list").scrollHeight;
+    renderLogSummary();
+  }
+
+  function renderLogSummary() {
+    const summary = $("#log-summary");
+    const list = $("#log-list");
+    const toggle = $("#log-detail-toggle");
+    if (!summary || !list || !toggle) return;
+    const detail = ui.logDetail;
+    list.classList.toggle("is-hidden", !detail);
+    summary.classList.toggle("is-hidden", detail);
+    toggle.textContent = detail ? "Sadeleştir" : "Detaylandır";
+    const job = model.job || {};
+    const active = model.lessons.find((lesson) => ["İndiriliyor", "Birleştiriliyor", "Dönüştürülüyor", "Kaynak aranıyor"].includes(lesson.status));
+    const ratio = job.total ? clamp(((job.done || 0) + (active?.progress || 0)) / job.total, 0, 1) : (active?.progress || 0);
+    const lastLog = ui.logs.length ? ui.logs[ui.logs.length - 1] : null;
+    summary.classList.toggle("is-busy", Boolean(job.busy));
+    $("#log-summary-title").textContent = job.busy ? (active?.title || job.title || job.label || "İşlem sürüyor") : (job.title || "Hazır");
+    $("#log-summary-detail").textContent = job.busy ? (job.detail || lastLog?.message || "Lütfen bekleyin…") : (lastLog?.message || "Kütüphaneden ders seçerek indirmeyi başlatabilirsin.");
+    $("#log-summary-percent").textContent = job.busy ? `%${Math.round(ratio * 100)}` : (model.lessons.some((lesson) => lesson.status === "Tamamlandı") ? "✓" : "—");
   }
 
   function renderHistory() {
@@ -718,10 +778,11 @@
   function renderSettings() {
     $("#output-input").value = model.settings.output_dir || "";
     $("#quality-input").value = model.settings.quality || "Dengeli (720p)";
-    $("#encoder-input").value = model.settings.encoder || "libx264 (uyumlu)";
+    $("#encoder-input").value = model.settings.encoder || "Otomatik (en hızlı)";
     $("#chat-switch").checked = Boolean(model.settings.save_chat);
     $("#headless-switch").checked = model.settings.headless_first !== false;
     $("#thumbnail-switch").checked = model.settings.auto_thumbnail !== false;
+    $("#update-switch").checked = model.settings.auto_update !== false;
     $("#segments-input").value = String(model.settings.segment_threads || 4);
     $("#idle-input").value = String(model.settings.idle_shutdown_minutes || 3);
     $("#transcript-model-input").value = model.settings.transcript_model || "base";
@@ -957,6 +1018,36 @@
     if (!dialog.open) dialog.showModal();
   }
 
+  function renderShortcuts() {
+    const grid = $("#shortcut-grid");
+    if (!grid) return;
+    grid.innerHTML = SHORTCUT_DEFS.map((item) => {
+      const listening = ui.rebinding === item.id;
+      const label = listening ? "Bir tuşa bas…" : keyLabel(ui.shortcuts[item.id] || item.def);
+      return `<span>${escapeHtml(item.label)}</span><button class="shortcut-key ${listening ? "is-listening" : ""}" data-action="rebind-shortcut" data-shortcut="${item.id}" type="button"><kbd>${escapeHtml(label)}</kbd></button>`;
+    }).join("");
+  }
+
+  function saveShortcuts() {
+    try { localStorage.setItem("echowraith-shortcuts", JSON.stringify(ui.shortcuts)); } catch (error) { /* storage may be unavailable */ }
+  }
+
+  function applyRebind(event) {
+    const id = ui.rebinding;
+    if (event.key === "Escape") { ui.rebinding = null; renderShortcuts(); return; }
+    const key = normalizeKey(event);
+    if (["control", "shift", "alt", "meta"].includes(key)) return;
+    // Free this key from any other action so two actions never collide.
+    for (const other of SHORTCUT_DEFS) {
+      if (other.id !== id && ui.shortcuts[other.id] === key) ui.shortcuts[other.id] = "";
+    }
+    ui.shortcuts[id] = key;
+    ui.rebinding = null;
+    saveShortcuts();
+    renderShortcuts();
+    toast("Kısayol güncellendi", `${SHORTCUT_DEFS.find((s) => s.id === id).label}: ${keyLabel(key)}`, "success", 1800);
+  }
+
   function exitTheater() {
     if (!document.body.classList.contains("theater-mode")) return;
     document.body.classList.remove("theater-mode");
@@ -968,7 +1059,9 @@
     if (action === "go-library") return setView("library");
     if (action === "show-downloads") return setView("downloads");
     if (action === "open-settings") { renderSettings(); return showDialog("#settings-dialog"); }
-    if (action === "open-shortcuts") return showDialog("#shortcuts-dialog");
+    if (action === "open-shortcuts") { ui.rebinding = null; renderShortcuts(); return showDialog("#shortcuts-dialog"); }
+    if (action === "rebind-shortcut") { ui.rebinding = target.dataset.shortcut; return renderShortcuts(); }
+    if (action === "reset-shortcuts") { ui.shortcuts = Object.fromEntries(SHORTCUT_DEFS.map((item) => [item.id, item.def])); ui.rebinding = null; saveShortcuts(); renderShortcuts(); return toast("Kısayollar sıfırlandı", "Varsayılan tuşlara dönüldü.", "info"); }
     if (action === "toggle-sidebar") return document.body.classList.toggle("sidebar-open");
     if (action === "close-sidebar") return document.body.classList.remove("sidebar-open");
     if (action === "scan") return startScan();
@@ -1010,10 +1103,11 @@
     if (action === "pause-job") { try { await request("/pause", { method: "POST" }); await refreshState(true); } catch (error) { toast("İşlem değiştirilemedi", error.message, "error"); } return; }
     if (action === "cancel-job") return showConfirm("İşlem durdurulsun mu?", "Yarım dosyalar korunur; daha sonra kaldığı yerden devam edebilirsin.", "Durdur", async () => { await request("/cancel", { method: "POST" }); await refreshState(true); toast("Durdurma isteği gönderildi", "Aktif adım güvenli biçimde kapatılıyor.", "info"); });
     if (action === "clear-log") { ui.logs = []; return renderLogs(); }
+    if (action === "toggle-log-detail") { ui.logDetail = !ui.logDetail; return renderLogSummary(); }
     if (action === "login") return startAuth(false);
     if (action === "browser-login") return startAuth(true);
     if (action === "choose-folder") { try { const data = await request("/choose-folder", { method: "POST" }); if (data.path) $("#output-input").value = data.path; } catch (error) { toast("Klasör seçilemedi", error.message, "error"); } return; }
-    if (action === "save-settings") { try { const settings = { output_dir: $("#output-input").value.trim(), quality: $("#quality-input").value, encoder: $("#encoder-input").value, save_chat: $("#chat-switch").checked, headless_first: $("#headless-switch").checked, auto_thumbnail: $("#thumbnail-switch").checked, segment_threads: Number($("#segments-input").value), idle_shutdown_minutes: Number($("#idle-input").value), transcript_model: $("#transcript-model-input").value }; const data = await request("/settings", { method: "PATCH", body: settings }); model.settings = { ...model.settings, ...(data.settings || settings) }; $("#settings-dialog").close(); renderAll(); toast("Ayarlar kaydedildi", "Yeni işlemlerde uygulanacak.", "success"); } catch (error) { toast("Ayarlar kaydedilemedi", error.message, "error"); } return; }
+    if (action === "save-settings") { try { const settings = { output_dir: $("#output-input").value.trim(), quality: $("#quality-input").value, encoder: $("#encoder-input").value, save_chat: $("#chat-switch").checked, headless_first: $("#headless-switch").checked, auto_thumbnail: $("#thumbnail-switch").checked, auto_update: $("#update-switch").checked, segment_threads: Number($("#segments-input").value), idle_shutdown_minutes: Number($("#idle-input").value), transcript_model: $("#transcript-model-input").value }; const data = await request("/settings", { method: "PATCH", body: settings }); model.settings = { ...model.settings, ...(data.settings || settings) }; $("#settings-dialog").close(); renderAll(); toast("Ayarlar kaydedildi", "Yeni işlemlerde uygulanacak.", "success"); } catch (error) { toast("Ayarlar kaydedilemedi", error.message, "error"); } return; }
     if (action === "open-output") { try { await request("/open-output", { method: "POST" }); } catch (error) { toast("Klasör açılamadı", error.message, "error"); } return; }
     if (action === "open-logs") { try { await request("/open-logs", { method: "POST" }); } catch (error) { toast("Log klasörü açılamadı", error.message, "error"); } return; }
     if (action === "shutdown-app") return showConfirm("EchoWraith kapatılsın mı?", "Aktif işlem yoksa yerel panel ve bütün arka plan kaynakları kapanacak.", "Kapat", async () => { await request("/shutdown", { method: "POST" }); document.body.innerHTML = '<div class="boot-screen"><strong>EchoWraith kapatıldı</strong><span>Bu sekmeyi kapatabilirsin.</span></div>'; });
@@ -1022,7 +1116,29 @@
     if (action === "next-tour") { if (ui.tourIndex + 1 >= tourSteps.length) closeTour(); else { ui.tourIndex += 1; renderTour(); } return; }
     if (action === "open-file") { try { await request(`/lessons/${encodeURIComponent(ui.currentKey)}/open`, { method: "POST" }); } catch (error) { toast("Dosya açılamadı", error.message, "error"); } return; }
     if (action === "delete-note") { const lesson = currentLesson(); const id = target.dataset.id; lesson.bookmarks = (lesson.bookmarks || []).filter((note) => note.id !== id); renderNotes(); if (!PREVIEW) request(`/lessons/${encodeURIComponent(lesson.key)}/bookmarks/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {}); return; }
+    if (action === "check-update") {
+      try {
+        toast("Denetleniyor", "GitHub’daki en güncel sürüm kontrol ediliyor…", "info");
+        const data = await request("/update/check");
+        if (data.error) return toast("Denetlenemedi", data.error, "error", 6000);
+        if (!data.available) return toast("Güncel", "En son EchoWraith sürümünü kullanıyorsun.", "success");
+        return showConfirm("Güncelleme bulundu", `${data.message || "Yeni bir sürüm mevcut."}\n\nŞimdi indirilip uygulansın mı? EchoWraith otomatik yeniden başlatılacak.`, "Güncelle", applyUpdate);
+      } catch (error) { return toast("Denetlenemedi", error.message, "error", 6000); }
+    }
     if (action === "confirm-cancel") return hideConfirm();
+  }
+
+  async function applyUpdate() {
+    try {
+      toast("Güncelleniyor", "Yeni sürüm indiriliyor, lütfen bekle…", "info", 7000);
+      const data = await request("/update/apply", { method: "POST" });
+      if (data.applied) {
+        toast("Güncellendi", "EchoWraith yeni sürümle yeniden başlatılıyor…", "success", 9000);
+        setTimeout(() => location.reload(), 4500);
+      } else {
+        toast("Güncelleme", data.message || "EchoWraith zaten güncel.", "info");
+      }
+    } catch (error) { toast("Güncellenemedi", error.message, "error", 9000); }
   }
 
   function processEvent(kind, payload) {
@@ -1042,7 +1158,8 @@
     if (kind === "item_progress") { const lesson = model.lessons.find((item) => item.key === payload.key); if (lesson) Object.assign(lesson, { progress: payload.progress || 0, download_speed: payload.speed || 0, eta_seconds: payload.eta || 0, bytes_downloaded: payload.bytes_done || lesson.bytes_downloaded || 0, known_size: payload.bytes_total || lesson.known_size }); renderDownloads(); if (ui.view === "library") renderLibrary(); return; }
     if (kind === "transcript_progress") { if (payload.key === ui.studyKey) { $("#study-progress").classList.remove("is-hidden"); $("#study-progress-title").textContent = payload.message || "Transkript hazırlanıyor…"; $("#study-progress-copy").textContent = payload.stage === "MODEL" ? "İlk kullanımda model hazırlanırken biraz beklemek normaldir." : "Video bu bilgisayarda analiz ediliyor."; $("#study-progress-bar").style.width = `${Math.round((payload.progress || 0) * 100)}%`; } return; }
     if (kind === "transcript_ready") { if (payload.key === ui.studyKey) loadStudyData(payload.key); return; }
-    if (kind === "overall_progress") { model.job.done = payload.done; model.job.total = payload.total; model.job.title = payload.title; renderJob(); }
+    if (kind === "overall_progress") { model.job.done = payload.done; model.job.total = payload.total; model.job.title = payload.title; renderJob(); return; }
+    if (kind === "update_available") { ui.updateInfo = payload; toast("Güncelleme mevcut", "Ayarlar → “Güncellemeleri denetle” ile yeni sürümü yükleyebilirsin.", "info", 8000); }
   }
 
   async function pollEvents() {
@@ -1102,21 +1219,34 @@
     document.addEventListener("mouseover", (event) => { const chapter = event.target.closest(".chapter-dot"); if (!chapter) return; const tip = $("#chapter-tooltip"); tip.textContent = `${chapter.dataset.title} · ${formatTime(chapter.dataset.time)}`; tip.classList.remove("is-hidden"); });
     document.addEventListener("mouseout", (event) => { if (event.target.closest(".chapter-dot")) $("#chapter-tooltip").classList.add("is-hidden"); });
     document.addEventListener("keydown", (event) => {
+      if (ui.rebinding) { event.preventDefault(); applyRebind(event); return; }
       const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName);
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); $("#global-search").focus(); return; }
       if (event.key === "Escape" && document.body.classList.contains("theater-mode")) { event.preventDefault(); exitTheater(); return; }
-      if (typing || ui.view !== "watch") return;
-      const key = event.key.toLowerCase();
-      if (key === " " || key === "k") { event.preventDefault(); setPlaying(mediaPaused()); }
-      if (key === "j" || event.key === "ArrowLeft") { event.preventDefault(); setMediaTime(mediaTime() - (key === "j" ? 10 : 5)); }
-      if (key === "l" || event.key === "ArrowRight") { event.preventDefault(); setMediaTime(mediaTime() + (key === "l" ? 10 : 5)); }
-      if (key === "m") $("#mute-toggle").click();
-      if (key === "f") handleAction("fullscreen", $("#main-media-shell"));
-      if (key === "b") addBookmark();
-      if (key === "[") { const select = $("#speed-select"); select.selectedIndex = Math.max(0, select.selectedIndex - 1); select.dispatchEvent(new Event("change")); toast("Oynatma hızı", select.options[select.selectedIndex].text, "info", 1500); }
-      if (key === "]") { const select = $("#speed-select"); select.selectedIndex = Math.min(select.options.length - 1, select.selectedIndex + 1); select.dispatchEvent(new Event("change")); toast("Oynatma hızı", select.options[select.selectedIndex].text, "info", 1500); }
+      if (typing || ui.view !== "watch" || event.ctrlKey || event.metaKey || event.altKey) return;
+      const pressed = normalizeKey(event);
+      const sc = ui.shortcuts;
+      const changeSpeed = (dir) => { const select = $("#speed-select"); select.selectedIndex = clamp(select.selectedIndex + dir, 0, select.options.length - 1); select.dispatchEvent(new Event("change")); toast("Oynatma hızı", select.options[select.selectedIndex].text, "info", 1500); };
+      // Fixed arrow-key fine seek stays available alongside the custom bindings.
+      if (event.key === "ArrowLeft") { event.preventDefault(); return setMediaTime(mediaTime() - 5); }
+      if (event.key === "ArrowRight") { event.preventDefault(); return setMediaTime(mediaTime() + 5); }
+      if (pressed === sc.playPause) { event.preventDefault(); return setPlaying(mediaPaused()); }
+      if (pressed === sc.back) { event.preventDefault(); return setMediaTime(mediaTime() - 10); }
+      if (pressed === sc.forward) { event.preventDefault(); return setMediaTime(mediaTime() + 10); }
+      if (pressed === sc.mute) return $("#mute-toggle").click();
+      if (pressed === sc.fullscreen) return handleAction("fullscreen", $("#main-media-shell"));
+      if (pressed === sc.bookmark) return addBookmark();
+      if (pressed === sc.speedDown) return changeSpeed(-1);
+      if (pressed === sc.speedUp) return changeSpeed(1);
     });
     window.addEventListener("beforeunload", () => saveProgress(false));
+    // Tell the local app the panel is closing so it can shut down promptly
+    // instead of idling in the background. pagehide is more reliable than
+    // beforeunload (it also covers the back/forward cache case).
+    window.addEventListener("pagehide", () => {
+      saveProgress(false);
+      if (!PREVIEW && navigator.sendBeacon) { try { navigator.sendBeacon(`${API}/leaving`); } catch (error) { /* best effort */ } }
+    });
     window.addEventListener("hashchange", routeFromHash);
   }
 

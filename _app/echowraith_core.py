@@ -72,6 +72,13 @@ LOG_DIR = DATA_ROOT / "logs"
 LOG_FILE = LOG_DIR / "echowraith.log"
 SERVER_FILE = DATA_ROOT / "server.json"
 WEB_ROOT = Path(__file__).resolve().parent / "web"
+APP_DIR = Path(__file__).resolve().parent
+INSTALL_ROOT = APP_DIR.parent
+REVISION_FILE = DATA_ROOT / "revision.json"
+
+# GitHub is treated as the source of truth for updates.
+UPDATE_REPO = "ketaminesiren/echo-video-archive"
+UPDATE_BRANCH = "main"
 
 
 def _migrate_legacy_data() -> None:
@@ -270,13 +277,14 @@ class Settings:
     output_dir: str = str(Path.home() / "Downloads" / "EchoWraith Dersleri")
     save_chat: bool = True
     quality: str = "Dengeli (720p)"
-    encoder: str = "libx264 (uyumlu)"
+    encoder: str = "Otomatik (en hızlı)"
     request_delay: float = 0.8
     headless_first: bool = True
     segment_threads: int = 4
     idle_shutdown_minutes: int = 3
     transcript_model: str = "base"
     auto_thumbnail: bool = True
+    auto_update: bool = True
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Settings":
@@ -1801,6 +1809,32 @@ class DownloadEngine:
         except (subprocess.TimeoutExpired, OSError):
             return False
 
+    def _encoder_available(self, encoder: str) -> bool:
+        if encoder == "libx264":
+            return True
+        available = self._encoder_cache.get(encoder)
+        if available is None:
+            available = self._probe_encoder(encoder)
+            self._encoder_cache[encoder] = available
+        return available
+
+    def _best_encoder(self, lesson: Lesson) -> str:
+        """Pick the fastest encoder this machine can actually use. Hardware
+        encoders finish a merge several times faster than libx264, which matters
+        for bulk jobs, and every candidate is probed so the choice never breaks
+        the render."""
+        for candidate in ("h264_nvenc", "h264_qsv", "h264_amf"):
+            if self._encoder_available(candidate):
+                self.sink.log(
+                    f"Bu bilgisayar için en hızlı uyumlu kodlayıcı seçildi: {candidate}.",
+                    "success",
+                    stage="ENCODER",
+                    code="ENCODER_AUTO",
+                    lesson_key=lesson.key,
+                )
+                return candidate
+        return "libx264"
+
     def _usable_encoder(self, encoder: str, lesson: Lesson) -> str:
         """Fall back to libx264 up front when the requested hardware encoder is
         not available, instead of discovering it only after a full, slow render
@@ -1846,7 +1880,10 @@ class DownloadEngine:
             "Intel Quick Sync": "h264_qsv",
             "AMD AMF": "h264_amf",
         }
-        encoder = self._usable_encoder(encoder_map.get(self.settings.encoder, "libx264"), lesson)
+        if self.settings.encoder == "Otomatik (en hızlı)":
+            encoder = self._best_encoder(lesson)
+        else:
+            encoder = self._usable_encoder(encoder_map.get(self.settings.encoder, "libx264"), lesson)
         # The frame-capture phase spins up one headless Chrome per worker and is
         # the slowest part of a BBB render, so scale it to the machine instead of
         # pinning two workers. Capped so a many-core host does not exhaust RAM.
@@ -2150,6 +2187,23 @@ class DownloadEngine:
                     position = int(micros.group(1)) / 1_000_000
                 if position and lesson.duration:
                     value = max(value, min(position / lesson.duration, 0.995))
+                # bbb-dl reports its own progress without a percent sign, so the
+                # bar used to sit at 0 for the whole (long) render. Map its two
+                # main phases onto a single forward-moving bar: frame capture is
+                # the first ~60%, the slideshow/mux the rest.
+                frame_capture = re.search(r"Done:\s*(\d+)\s*/\s*(\d+)\s*Frames", line, re.I)
+                if frame_capture and int(frame_capture.group(2)) > 0:
+                    captured = int(frame_capture.group(1)) / int(frame_capture.group(2))
+                    value = max(value, min(0.04 + captured * 0.56, 0.6))
+                if "creating slideshow" in line.casefold():
+                    value = max(value, 0.6)
+                bbb_time = re.search(r"\bTime:\s*(\d+(?::\d{2}){0,2})\b", line)
+                if bbb_time and lesson.duration:
+                    parts = [int(part) for part in bbb_time.group(1).split(":")]
+                    seconds = 0
+                    for part in parts:
+                        seconds = seconds * 60 + part
+                    value = max(value, min(0.6 + (seconds / lesson.duration) * 0.36, 0.97))
                 speed = 0.0
                 speed_match = re.search(r"([\d.]+)\s*(KiB|MiB|GiB|KB|MB|GB)/s", line, re.I)
                 if speed_match:
@@ -2748,6 +2802,15 @@ class WorkerController:
                         time.sleep(max(0.0, self.store.settings.request_delay))
                 self.sink.emit("job_done", f"{completed}/{len(lessons)} ders tamamlandı")
             except CancelledError as exc:
+                # A stopped lesson must not keep a transient status, or it would
+                # look like it is still merging forever after the user hit Stop.
+                for lesson in self.store.lessons.values():
+                    if lesson.status in TRANSIENT_STATUSES:
+                        lesson.status = "Bekliyor"
+                        lesson.progress = 0.0
+                        lesson.download_speed = 0.0
+                        lesson.eta_seconds = 0.0
+                        self.sink.emit("lesson_update", asdict(lesson))
                 self.store.save()
                 self.sink.emit("job_cancelled", str(exc))
             except Exception as exc:
