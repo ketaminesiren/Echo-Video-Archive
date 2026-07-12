@@ -3,24 +3,25 @@ $index = Join-Path $PSScriptRoot "web\index.html"
 if (-not (Test-Path $index)) { exit 0 }
 
 $text = [System.IO.File]::ReadAllText($index, [System.Text.Encoding]::UTF8)
-$changed = $false
+$cssTag = '<link rel="stylesheet" href="./aurora-overhaul.css?v=3" />'
+$jsTag = '<script src="./aurora-overhaul.js?v=3" defer></script>'
 
-if ($text -notmatch 'aurora-overhaul\.css') {
+if ($text -match '<link rel="stylesheet" href="\./aurora-overhaul\.css(?:\?v=\d+)?"\s*/>') {
+    $text = [regex]::Replace($text, '<link rel="stylesheet" href="\./aurora-overhaul\.css(?:\?v=\d+)?"\s*/>', $cssTag)
+} else {
     $text = $text.Replace(
         '<link rel="stylesheet" href="./styles.css" />',
-        '<link rel="stylesheet" href="./styles.css" />' + [Environment]::NewLine + '    <link rel="stylesheet" href="./aurora-overhaul.css?v=2" />'
+        '<link rel="stylesheet" href="./styles.css" />' + [Environment]::NewLine + "    $cssTag"
     )
-    $changed = $true
 }
 
-if ($text -notmatch 'aurora-overhaul\.js') {
+if ($text -match '<script src="\./aurora-overhaul\.js(?:\?v=\d+)?"\s+defer></script>') {
+    $text = [regex]::Replace($text, '<script src="\./aurora-overhaul\.js(?:\?v=\d+)?"\s+defer></script>', $jsTag)
+} else {
     $text = $text.Replace(
         '<script src="./app.js" defer></script>',
-        '<script src="./app.js" defer></script>' + [Environment]::NewLine + '    <script src="./aurora-overhaul.js?v=2" defer></script>'
+        '<script src="./app.js" defer></script>' + [Environment]::NewLine + "    $jsTag"
     )
-    $changed = $true
 }
 
-if ($changed) {
-    [System.IO.File]::WriteAllText($index, $text, [System.Text.UTF8Encoding]::new($false))
-}
+[System.IO.File]::WriteAllText($index, $text, [System.Text.UTF8Encoding]::new($false))
