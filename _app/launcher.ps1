@@ -37,7 +37,9 @@ function Write-LunaBanner {
 }
 
 function Invoke-Logged([string]$File, [string[]]$Arguments) {
-    & $File @Arguments 2>&1 | Tee-Object -FilePath $LauncherLog -Append
+    # Keep the pip/playwright/ffmpeg firehose out of the console; only the clean
+    # Write-Step messages should be visible. Everything still goes to the log.
+    & $File @Arguments 2>&1 | Out-File -FilePath $LauncherLog -Append -Encoding UTF8
     if ($LASTEXITCODE -ne 0) { throw "Komut tamamlanamadı: $File" }
 }
 

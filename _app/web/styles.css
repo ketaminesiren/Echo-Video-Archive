@@ -3275,8 +3275,17 @@ body {
 /* Guided tour: a light scrim keeps the real screen visible while Luna's coach
    card is docked at the bottom, so each step actually shows the area it
    describes. */
-.tour-overlay { position: fixed; z-index: 300; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: clamp(12px, 3vw, 30px); background: linear-gradient(to top, rgba(4, 7, 15, .5), rgba(4, 7, 15, .12) 45%, transparent 70%); animation: view-in var(--ease-smooth) both; }
-.tour-card { position: relative; display: grid; grid-template-columns: 168px minmax(0, 1fr); align-items: end; gap: 6px; width: min(760px, 100%); padding: 18px 22px 18px 0; overflow: hidden; border: 1px solid rgba(97, 119, 183, .45); border-radius: 20px; background: linear-gradient(120deg, rgba(12, 18, 33, .97), rgba(22, 24, 58, .96)); box-shadow: 0 28px 80px rgba(0, 0, 0, .6); }
+.tour-overlay { position: fixed; z-index: 300; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: clamp(12px, 3vw, 30px); background: rgba(4, 7, 15, .62); animation: view-in var(--ease-smooth) both; }
+/* When a step highlights an element, the dimming comes from the spotlight's
+   huge box-shadow instead, so the overlay itself stays clear. */
+.tour-overlay.has-spotlight { background: transparent; }
+.tour-overlay.dock-top { align-items: flex-start; }
+.tour-spotlight { position: fixed; z-index: 1; border-radius: 12px; box-shadow: 0 0 0 100vmax rgba(4, 7, 15, .74); outline: 2px solid #ff5f6d; outline-offset: 3px; pointer-events: none; transition: top .38s cubic-bezier(.2,.75,.25,1), left .38s cubic-bezier(.2,.75,.25,1), width .38s cubic-bezier(.2,.75,.25,1), height .38s cubic-bezier(.2,.75,.25,1); }
+.tour-spotlight::after { content: ""; position: absolute; inset: -3px; border-radius: 14px; box-shadow: 0 0 0 4px rgba(255, 95, 109, .26), 0 0 26px rgba(255, 95, 109, .55); animation: tour-pulse 1.7s ease-in-out infinite; }
+.tour-spotlight.is-hidden { display: none; }
+@keyframes tour-pulse { 0%, 100% { opacity: .68; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tour-spotlight::after { animation: none; } }
+.tour-card { position: relative; z-index: 2; display: grid; grid-template-columns: 168px minmax(0, 1fr); align-items: end; gap: 6px; width: min(760px, 100%); padding: 18px 22px 18px 0; overflow: hidden; border: 1px solid rgba(97, 119, 183, .45); border-radius: 20px; background: linear-gradient(120deg, rgba(12, 18, 33, .97), rgba(22, 24, 58, .96)); box-shadow: 0 28px 80px rgba(0, 0, 0, .6); }
 .tour-art { position: relative; align-self: stretch; min-height: 168px; }
 .tour-art img { position: absolute; z-index: 2; left: 4px; bottom: -14px; width: 168px; max-width: none; filter: drop-shadow(0 16px 26px rgba(0, 0, 0, .5)); transition: transform 480ms cubic-bezier(.2,.75,.25,1), left 480ms cubic-bezier(.2,.75,.25,1); }
 .tour-art[data-pose="1"] img { transform: translateY(3px) rotate(-1.4deg); }

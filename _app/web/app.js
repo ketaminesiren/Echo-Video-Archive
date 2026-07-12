@@ -5,7 +5,7 @@
   const API = "/api";
 
   const icons = {
-    library: '<svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v15a3 3 0 0 0-3-3H4V5.5Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v18a3 3 0 0 1 3-3h3V5.5Z"/></svg>',
+    library: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2.5"/><path d="m10 8.5 5 2.5-5 2.5v-5Z"/><path d="M7 21h10"/></svg>',
     download: '<svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5"/><path d="M4 18v2h16v-2"/></svg>',
     history: '<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>',
     search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>',
@@ -145,17 +145,17 @@
   // Her adım gerçek bir ekrana götürür (view) ve Luna'nın bir pozunu gösterir
   // (pose). Poz dosyaları henüz yoksa mevcut maskota düşülür.
   const tourSteps = [
-    { title: "Merhaba şefim, ben Luna.", text: "EchoWraith’i ben tasarlayıp kodladım. Şimdi seni bütün ekranlarda gezdireceğim; hiçbir teknik bilgiye gerek yok. Hazırsan başlayalım.", view: "library", pose: "wave" },
-    { title: "1) Hesabını bağla.", text: "Sağ üstteki dişli (Ayarlar) düğmesine gir, Efsane Uzem e-posta ve şifreni bir kez yaz, “Oturumu aç” de. Şifren hiçbir yere kaydedilmez.", view: "library", pose: "point" },
-    { title: "2) Dersleri tara.", text: "Kütüphanedeki “Dersleri tara” düğmesine bas; tüm ders listen otomatik bulunur. Gerekirse kısa bir tarayıcı penceresi açılıp kendiliğinden kapanır.", view: "library", pose: "point" },
-    { title: "3) Seç ve indir.", text: "İşte İndirme Merkezi. Derslerin köşesindeki kutucuğu işaretleyip “Seçilenleri indir” dersin; hız, yüzde ve kalan süreyi burada canlı izlersin.", view: "downloads", pose: "run" },
-    { title: "Durum kartı ve günlük.", text: "İndirme sürerken bu kart sana yüzdeyi ve o an ne olduğunu sade biçimde gösterir. Teknik ayrıntı istersen “Detaylandır” diyebilirsin.", view: "downloads", pose: "point" },
-    { title: "4) Dersi izle.", text: "Bir dersi açtığında ana video, öğretmen kamerası ve sohbet ayrı ama tam senkron oynar. Oynat/duraklat, 10 sn ileri-geri ve oynatma hızını alttaki çubuktan yönetirsin.", view: "watch", pose: "run" },
-    { title: "Sağ panel: sohbet, notlar, kamera.", text: "Sağ tarafta dersin sohbetini okur, istediğin ana kendi notunu eklersin. Bir mesaja dokununca video o ana gider. Kamerayı küçültüp büyütebilirsin.", view: "watch", pose: "point" },
-    { title: "Odak Modu ve Tam Ekran.", text: "Alttaki Odak Modu düğmesi her şeyi gizleyip yalnızca videoyu büyütür; kamera küçük bir köşe penceresi olarak kalır. Çıkmak için Esc. Yanındaki düğme Tam Ekran açar.", view: "watch", pose: "point" },
-    { title: "Kaldığın yerden devam.", text: "Nerede bıraktığın otomatik hatırlanır. İzleme Geçmişi’nden veya Kütüphanenin üstündeki karttan tek dokunuşla devam edebilirsin.", view: "history", pose: "run" },
-    { title: "Transkript ve Test (Deneysel).", text: "Bir dersi yazıya çevirip kendine çoktan seçmeli test çıkarabilirsin; her şey bu bilgisayarda çalışır. Bu özellik hâlâ geliştiriliyor, sonuçlar bazen eksik olabilir.", view: "study", pose: "point" },
-    { title: "Hazırsın, şefim!", text: "Bir sorun olursa bekle; EchoWraith uygun çözümü kendi dener. Bu turu istediğin an “Nasıl Kullanılır?” bölümünden yeniden başlatabilirsin. Kolay gelsin!", view: "help", pose: "thumb" },
+    { title: "Merhaba şefim, ben Luna!", text: "EchoWraith’in maskotu ve rehberiyim (uygulamayı Restless geliştirdi). Şimdi seni bütün ekranlarda gezdireceğim; hiçbir teknik bilgiye gerek yok. Hazırsan başlayalım.", view: "library", pose: "wave", target: null },
+    { title: "1) Hesabını bağla.", text: "Sağ üstteki dişli (Ayarlar) düğmesine gir, Efsane Uzem e-posta ve şifreni bir kez yaz, “Oturumu aç” de. Şifren hiçbir yere kaydedilmez.", view: "library", pose: "point", target: '.top-filters [data-action="open-settings"]' },
+    { title: "2) Dersleri tara.", text: "Kütüphanedeki “Dersleri tara” düğmesine bas; tüm ders listen otomatik bulunur. Gerekirse kısa bir tarayıcı penceresi açılıp kendiliğinden kapanır.", view: "library", pose: "point", target: '[data-action="scan"]' },
+    { title: "3) Seç ve indir.", text: "İstediğin derslerin köşesindeki kutucuğu işaretle, sonra buradan “Seçilenleri indir” de; hız, yüzde ve kalan süreyi İndirmeler’de canlı izlersin.", view: "library", pose: "run", target: '[data-action="download-selected"]' },
+    { title: "Durum kartı ve günlük.", text: "İndirme sürerken bu kart sana yüzdeyi ve o an ne olduğunu sade biçimde gösterir. Teknik ayrıntı istersen “Detaylandır” diyebilirsin.", view: "downloads", pose: "point", target: "#log-summary" },
+    { title: "4) Dersi izle.", text: "Bir dersi açtığında ana video, öğretmen kamerası ve sohbet ayrı ama tam senkron oynar. Oynat/duraklat, 10 sn ileri-geri ve oynatma hızını alttaki çubuktan yönetirsin.", view: "watch", pose: "run", target: ".player-card" },
+    { title: "Sağ panel: sohbet, notlar, kamera.", text: "Sağ tarafta dersin sohbetini okur, istediğin ana kendi notunu eklersin. Bir mesaja dokununca video o ana gider. Kamerayı küçültüp büyütebilirsin.", view: "watch", pose: "point", target: "#media-rail" },
+    { title: "Odak Modu ve Tam Ekran.", text: "Alttaki Odak Modu düğmesi her şeyi gizleyip yalnızca videoyu büyütür; kamera küçük bir köşe penceresi olarak kalır. Çıkmak için Esc. Yanındaki düğme Tam Ekran açar.", view: "watch", pose: "point", target: '[data-action="theater"]' },
+    { title: "Kaldığın yerden devam.", text: "Nerede bıraktığın otomatik hatırlanır. İzleme Geçmişi’nden veya Kütüphanenin üstündeki karttan tek dokunuşla devam edebilirsin.", view: "history", pose: "run", target: '.nav-item[data-view="history"]' },
+    { title: "Transkript ve Test (Deneysel).", text: "Bir dersi yazıya çevirip kendine çoktan seçmeli test çıkarabilirsin; her şey bu bilgisayarda çalışır. Bu özellik hâlâ geliştiriliyor, sonuçlar bazen eksik olabilir.", view: "study", pose: "point", target: '.nav-item[data-view="study"]' },
+    { title: "Hazırsın, şefim!", text: "Bir sorun olursa bekle; EchoWraith uygun çözümü kendi dener. Bu turu istediğin an “Nasıl Kullanılır?” bölümünden yeniden başlatabilirsin. Kolay gelsin!", view: "help", pose: "thumb", target: null },
   ];
 
   const TOUR_POSES = { wave: "luna-wave", point: "luna-point", run: "luna-run", thumb: "luna-thumb" };
@@ -959,11 +959,40 @@
     luna.onerror = () => { luna.onerror = null; luna.src = "./assets/echo-mascot.webp"; };
     luna.src = `./assets/${pose}.webp`;
     $(".tour-art").dataset.pose = String(ui.tourIndex % 4);
+    // The view is still animating in; place the spotlight once it settles.
+    window.clearTimeout(ui.tourSpotTimer);
+    ui.tourSpotTimer = window.setTimeout(() => positionTourSpotlight(step), 120);
+  }
+
+  function positionTourSpotlight(step) {
+    const overlay = $("#tour-overlay");
+    const spot = $("#tour-spotlight");
+    const target = step.target ? $(step.target) : null;
+    const rect = target && target.offsetParent !== null ? target.getBoundingClientRect() : null;
+    if (!rect || rect.width < 4 || rect.height < 4) {
+      spot.classList.add("is-hidden");
+      overlay.classList.remove("has-spotlight", "dock-top");
+      return;
+    }
+    const pad = 8;
+    spot.style.top = `${rect.top - pad}px`;
+    spot.style.left = `${rect.left - pad}px`;
+    spot.style.width = `${rect.width + pad * 2}px`;
+    spot.style.height = `${rect.height + pad * 2}px`;
+    spot.classList.remove("is-hidden");
+    overlay.classList.add("has-spotlight");
+    // Keep the coach card from covering the highlighted element: dock it at the
+    // opposite end of the screen.
+    overlay.classList.toggle("dock-top", rect.top + rect.height / 2 > window.innerHeight * 0.55);
   }
 
   function closeTour() {
     localStorage.setItem("echowraith-tour-5", "done");
-    $("#tour-overlay").classList.add("is-hidden");
+    window.clearTimeout(ui.tourSpotTimer);
+    const overlay = $("#tour-overlay");
+    overlay.classList.add("is-hidden");
+    overlay.classList.remove("has-spotlight", "dock-top");
+    $("#tour-spotlight").classList.add("is-hidden");
     document.body.classList.remove("tour-active");
     setView("library");
   }
