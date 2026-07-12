@@ -2,48 +2,241 @@
   "use strict";
 
   const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+  const escapeHtml = (value = "") => String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
 
   const BRAND_SVG = `
-    <svg viewBox="0 0 64 64" aria-hidden="true">
+    <svg viewBox="0 0 72 72" aria-hidden="true">
       <defs>
-        <linearGradient id="echoBrandGradient" x1="7" y1="6" x2="57" y2="58" gradientUnits="userSpaceOnUse">
-          <stop stop-color="#44e5ff"/><stop offset=".48" stop-color="#6488ff"/><stop offset="1" stop-color="#b65cff"/>
+        <linearGradient id="ew-brand-gradient" x1="8" y1="6" x2="64" y2="67" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#45ecff"/><stop offset=".46" stop-color="#5d83ff"/><stop offset="1" stop-color="#b35cff"/>
         </linearGradient>
-        <filter id="echoGlow"><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="ew-brand-glow"><feGaussianBlur stdDeviation="1.8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
-      <path d="M42 8C27 11 15 22 13 36c-1 9 4 16 13 19-4-6-4-13-1-18 4-6 10-9 19-10-4 4-7 8-8 13 8-4 14-11 15-20-4 3-8 4-13 4 3-6 5-11 4-16Z" fill="none" stroke="url(#echoBrandGradient)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" filter="url(#echoGlow)"/>
-      <path d="m27 27 13 7-13 7V27Z" fill="rgba(77,218,255,.14)" stroke="url(#echoBrandGradient)" stroke-width="2.6" stroke-linejoin="round"/>
-      <circle cx="47.5" cy="13" r="2" fill="#7be7ff"/><circle cx="53" cy="20" r="1.2" fill="#ac72ff"/>
+      <path d="M47 8C31 10 16 23 13 39c-2 11 5 21 17 25-6-7-7-16-3-23 4-7 11-11 22-13-5 5-9 11-10 17 10-5 18-14 19-25-5 4-10 6-16 6 4-7 6-13 5-18Z" fill="rgba(77,218,255,.07)" stroke="url(#ew-brand-gradient)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" filter="url(#ew-brand-glow)"/>
+      <path d="m29 30 15 8-15 8V30Z" fill="rgba(88,221,255,.16)" stroke="url(#ew-brand-gradient)" stroke-width="2.8" stroke-linejoin="round"/>
+      <circle cx="54" cy="14" r="2.4" fill="#80edff"/><circle cx="61" cy="22" r="1.4" fill="#c377ff"/>
     </svg>`;
 
-  const poseStack = (extraClass = "") => `
-    <div class="luna-anim ${extraClass}" aria-label="Luna çalışıyor">
-      <img src="./assets/luna-wave.webp" alt="" />
-      <img src="./assets/luna-point.webp" alt="" />
-      <img src="./assets/luna-run.webp" alt="" />
-      <img src="./assets/luna-thumb.webp" alt="" />
+  const ICONS = {
+    account: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 21c.8-4.5 3.2-7 7.5-7s6.7 2.5 7.5 7"/></svg>',
+    scan: '<svg viewBox="0 0 24 24"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/><path d="M8 12h8"/></svg>',
+    download: '<svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5"/><path d="M4 19h16"/></svg>',
+    play: '<svg viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z"/></svg>',
+    transcript: '<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+    quiz: '<svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="m8 10 2 2 4-4M8 16h8"/></svg>'
+  };
+
+  const mascot = (src = "luna-point.webp", className = "") => `
+    <div class="luna-static ${className}">
+      <img src="./assets/${src}" alt="Luna" />
     </div>`;
 
   function installBrand() {
     const mark = $(".brand-mark");
     const boot = $(".boot-logo");
-    if (mark) mark.innerHTML = BRAND_SVG;
-    if (boot) boot.innerHTML = BRAND_SVG;
+    if (mark && mark.dataset.overhauled !== "1") {
+      mark.innerHTML = BRAND_SVG;
+      mark.dataset.overhauled = "1";
+    }
+    if (boot && boot.dataset.overhauled !== "1") {
+      boot.innerHTML = BRAND_SVG;
+      boot.dataset.overhauled = "1";
+    }
   }
 
-  function installAnimatedMascots() {
+  function installStaticMascots() {
     const loader = $(".luna-loader");
-    if (loader && !loader.querySelector(".luna-anim")) {
-      loader.innerHTML = `${poseStack("compact")}<span class="luna-ring"></span>`;
+    if (loader && !loader.querySelector(".luna-static")) {
+      loader.innerHTML = `${mascot("luna-point.webp", "is-small")}<span class="luna-ring"></span>`;
     }
 
-    const overview = $(".job-overview");
-    if (overview && !overview.querySelector(".luna-work-card")) {
-      const card = document.createElement("div");
-      card.className = "luna-work-card";
-      card.innerHTML = `${poseStack()}<span class="luna-work-copy"><strong>Luna çalışıyor</strong><small>İndirme ve dönüştürme aşamalarını canlı izliyor.</small></span>`;
-      const action = overview.querySelector(":scope > .button");
-      overview.insertBefore(card, action || null);
+    const overview = $("#downloads-view .job-overview");
+    if (overview && !overview.querySelector(".download-luna-card")) {
+      const card = document.createElement("aside");
+      card.className = "download-luna-card";
+      card.innerHTML = `${mascot("luna-run.webp", "is-download")}<span><strong>Luna çalışıyor</strong><small>İndirme ve dönüştürme aşamalarını izliyor.</small></span>`;
+      overview.appendChild(card);
+    }
+
+    const helpImage = $("#help-view .help-hero > img");
+    if (helpImage) {
+      helpImage.src = "./assets/luna-point.webp";
+      helpImage.alt = "EchoWraith rehberi Luna";
+      helpImage.classList.add("help-luna-static");
+    }
+  }
+
+  function installLibraryHero() {
+    const heading = $("#library-view .page-heading");
+    if (!heading || heading.querySelector(".library-luna-static")) return;
+    heading.classList.add("aurora-library-heading");
+    const art = document.createElement("div");
+    art.className = "library-luna-static";
+    art.innerHTML = `<span class="library-luna-glow"></span><img src="./assets/luna-point.webp" alt="Luna" />`;
+    heading.appendChild(art);
+  }
+
+  function hashText(value) {
+    let hash = 0;
+    for (const char of String(value || "")) hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0;
+    return Math.abs(hash);
+  }
+
+  function decorateLessonCards() {
+    const cards = $$("#lesson-list .lesson-card");
+    cards.forEach((card, index) => {
+      const key = card.dataset.key || String(index);
+      const theme = hashText(key) % 8;
+      card.dataset.theme = String(theme);
+      const cover = $(".lesson-cover", card);
+      if (cover) {
+        cover.style.setProperty("--cover-shift", `${12 + (theme * 11) % 77}%`);
+        cover.style.setProperty("--cover-hue", `${theme * 18}deg`);
+      }
+    });
+  }
+
+  function installHelpStepIcons() {
+    $$("#help-view .help-steps article").forEach((card, index) => {
+      if (card.querySelector(".help-step-icon")) return;
+      const icon = document.createElement("span");
+      icon.className = "help-step-icon";
+      icon.innerHTML = [ICONS.account, ICONS.scan, ICONS.download, ICONS.play][index] || ICONS.play;
+      const number = card.querySelector(":scope > b");
+      if (number) number.insertAdjacentElement("afterend", icon);
+      else card.prepend(icon);
+    });
+  }
+
+  function installStudyArtwork() {
+    const transcript = $("#study-transcript-list .study-placeholder");
+    if (transcript && !transcript.querySelector(".study-empty-visual")) {
+      const visual = document.createElement("div");
+      visual.className = "study-empty-visual transcript-visual";
+      visual.innerHTML = `${ICONS.transcript}<i></i><i></i>`;
+      transcript.prepend(visual);
+    }
+    const quiz = $("#quiz-body .study-placeholder");
+    if (quiz && !quiz.querySelector(".study-empty-visual")) {
+      const visual = document.createElement("div");
+      visual.className = "study-empty-visual quiz-visual";
+      visual.innerHTML = `${ICONS.quiz}<i></i><i></i>`;
+      quiz.prepend(visual);
+    }
+  }
+
+  function ensureDownloadHero() {
+    const overview = $("#downloads-view .job-overview");
+    if (!overview) return;
+    overview.classList.add("aurora-download-hero");
+
+    if (!overview.querySelector(".download-progress-zone")) {
+      const copy = overview.querySelector(".job-copy");
+      const progress = document.createElement("div");
+      progress.className = "download-progress-zone";
+      progress.innerHTML = `
+        <div class="download-progress-track"><i id="overhaul-job-progress"></i></div>
+        <div class="download-metrics">
+          <span><b id="overhaul-speed">—</b><small>İndirme hızı</small></span>
+          <span><b id="overhaul-bytes">—</b><small>İlerleme</small></span>
+          <span><b id="overhaul-eta">—</b><small>Kalan süre</small></span>
+        </div>`;
+      if (copy) copy.insertAdjacentElement("afterend", progress);
+      else overview.appendChild(progress);
+    }
+
+    const logCard = $("#downloads-view .log-card");
+    if (logCard && !logCard.querySelector(".download-status-list")) {
+      const list = document.createElement("div");
+      list.className = "download-status-list";
+      list.innerHTML = `
+        <div><span>Aşama</span><strong id="overhaul-stage">Hazır</strong></div>
+        <div><span>İlerleme</span><strong id="overhaul-status-bytes">—</strong></div>
+        <div><span>Hız</span><strong id="overhaul-status-speed">—</strong></div>
+        <div><span>Kalan süre</span><strong id="overhaul-status-eta">—</strong></div>
+        <div><span>Tahmini bitiş</span><strong id="overhaul-finish">—</strong></div>`;
+      const summary = $("#log-summary", logCard);
+      if (summary) summary.insertAdjacentElement("afterend", list);
+      else logCard.appendChild(list);
+    }
+  }
+
+  function decorateQueue() {
+    $$("#queue-list .queue-item").forEach((item, index) => {
+      if (!item.querySelector(".queue-thumb")) {
+        const thumb = document.createElement("span");
+        thumb.className = `queue-thumb queue-thumb-${index % 6}`;
+        const anchor = item.querySelector(".queue-index");
+        if (anchor) anchor.insertAdjacentElement("afterend", thumb);
+        else item.prepend(thumb);
+      }
+    });
+  }
+
+  function parsePercent(value) {
+    const match = String(value || "").replace(",", ".").match(/([0-9]+(?:\.[0-9]+)?)/);
+    return match ? Math.max(0, Math.min(100, Number(match[1]))) : 0;
+  }
+
+  function formatBytes(value) {
+    const amount = Number(value || 0);
+    if (!amount) return "—";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    let unit = 0;
+    let size = amount;
+    while (size >= 1024 && unit < units.length - 1) { size /= 1024; unit += 1; }
+    return `${size >= 10 || unit < 2 ? Math.round(size) : size.toFixed(1)} ${units[unit]}`;
+  }
+
+  function formatSeconds(value) {
+    let seconds = Math.max(0, Math.round(Number(value || 0)));
+    if (!seconds) return "—";
+    const hours = Math.floor(seconds / 3600);
+    seconds %= 3600;
+    const minutes = Math.floor(seconds / 60);
+    const rest = seconds % 60;
+    return hours ? `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}` : `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
+  }
+
+  function setText(selector, value) {
+    const node = $(selector);
+    if (node) node.textContent = value;
+  }
+
+  async function refreshDownloadDetails() {
+    if (!$("#downloads-view.is-active")) return;
+    try {
+      const response = await fetch("/api/state", { cache: "no-store" });
+      if (!response.ok) return;
+      const state = await response.json();
+      const active = (state.lessons || []).find((lesson) => ["İndiriliyor", "Birleştiriliyor", "Dönüştürülüyor", "Kaynak aranıyor"].includes(lesson.status));
+      const percentText = $("#job-percent")?.textContent || "0%";
+      const percent = parsePercent(percentText);
+      const speed = active?.download_speed ? `${formatBytes(active.download_speed)}/sn` : "—";
+      const bytes = active?.bytes_downloaded ? formatBytes(active.bytes_downloaded) : "—";
+      const eta = active?.eta_seconds ? formatSeconds(active.eta_seconds) : "—";
+      const totalText = active?.known_size ? `${bytes} / ${formatBytes(active.known_size)}` : bytes;
+      const stage = active?.status || (state.job?.busy ? state.job?.label || "İşlem sürüyor" : "Hazır");
+
+      const bar = $("#overhaul-job-progress");
+      if (bar) bar.style.width = `${percent}%`;
+      setText("#overhaul-speed", speed);
+      setText("#overhaul-bytes", totalText);
+      setText("#overhaul-eta", eta);
+      setText("#overhaul-stage", stage);
+      setText("#overhaul-status-bytes", totalText);
+      setText("#overhaul-status-speed", speed);
+      setText("#overhaul-status-eta", eta);
+
+      if (active?.eta_seconds) {
+        const finish = new Date(Date.now() + active.eta_seconds * 1000);
+        setText("#overhaul-finish", finish.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }));
+      } else {
+        setText("#overhaul-finish", "—");
+      }
+    } catch (_) {
+      // Main app owns network error handling.
     }
   }
 
@@ -62,34 +255,12 @@
     const focus = /odak modu/i.test(title);
     spot.dataset.label = focus ? "ODAK MODU DÜĞMESİ" : "BURAYA BAK";
     spot.classList.toggle("is-focus-step", focus);
-  }
-
-  function watchTour() {
-    const title = $("#tour-title");
-    if (!title) return;
-    refreshTourSpotlight();
-    new MutationObserver(refreshTourSpotlight).observe(title, { childList: true, characterData: true, subtree: true });
-  }
-
-  function decorateQueue() {
-    const list = $("#queue-list");
-    if (!list) return;
-    const apply = () => {
-      [...list.children].forEach((item, index) => {
-        item.style.setProperty("--queue-aurora-x", `${22 + (index % 4) * 19}%`);
-      });
-    };
-    apply();
-    new MutationObserver(apply).observe(list, { childList: true, subtree: true });
+    const art = $(".tour-art");
+    if (art) art.classList.toggle("is-final-step", /hazırsın/i.test(title));
   }
 
   let cancelPoll = 0;
   let cancelStartedAt = 0;
-
-  function setText(selector, value) {
-    const node = $(selector);
-    if (node) node.textContent = value;
-  }
 
   function showCancelPending() {
     const view = $("#downloads-view");
@@ -99,49 +270,24 @@
     view.classList.add("cancel-pending");
     setText("#job-label", "DURDURULUYOR");
     setText("#job-title", "Aktif işlem güvenli biçimde kapatılıyor");
-    setText("#job-detail", "Yarım dosyalar korunuyor; işlem kapanana kadar birkaç saniye bekle.");
-    setText("#log-summary-title", "Durdurma isteği alındı");
-    setText("#log-summary-detail", "Aktif video aracı ve alt işlemler kapatılıyor.");
-    startCancelPolling();
-  }
-
-  function showCancelComplete() {
-    const view = $("#downloads-view");
-    if (!view) return;
-    view.classList.remove("cancel-pending");
-    view.classList.add("cancel-complete");
-    setText("#job-label", "DURDURULDU");
-    setText("#job-title", "İşlem durduruldu");
-    setText("#job-detail", "Yarım dosyalar korundu; daha sonra yeniden deneyebilirsin.");
-    setText("#job-percent", "—");
-    setText("#log-summary-title", "Durduruldu");
-    setText("#log-summary-detail", "Arka planda çalışan indirme veya dönüştürme kalmadı.");
-    setText("#log-summary-percent", "—");
+    setText("#job-detail", "Yarım dosyalar korunuyor; çalışan araçların kapanması bekleniyor.");
     window.clearInterval(cancelPoll);
-    cancelPoll = 0;
-    window.setTimeout(() => view.classList.remove("cancel-complete"), 4500);
-  }
-
-  async function pollCancelState() {
-    try {
-      const response = await fetch("/api/state", { cache: "no-store" });
-      if (!response.ok) return;
-      const state = await response.json();
-      if (!state?.job?.busy && Date.now() - cancelStartedAt > 400) showCancelComplete();
-    } catch (_) {
-      // Existing app handles connection errors; this visual helper stays silent.
-    }
-  }
-
-  function startCancelPolling() {
-    window.clearInterval(cancelPoll);
-    pollCancelState();
-    cancelPoll = window.setInterval(pollCancelState, 550);
-    window.setTimeout(() => {
-      if ($("#downloads-view")?.classList.contains("cancel-pending")) {
-        setText("#job-detail", "İşlem normalden uzun sürüyor; çalışan video aracı kapanması bekleniyor.");
-      }
-    }, 7000);
+    cancelPoll = window.setInterval(async () => {
+      try {
+        const response = await fetch("/api/state", { cache: "no-store" });
+        const state = response.ok ? await response.json() : null;
+        if (state && !state.job?.busy && Date.now() - cancelStartedAt > 400) {
+          view.classList.remove("cancel-pending");
+          view.classList.add("cancel-complete");
+          setText("#job-label", "DURDURULDU");
+          setText("#job-title", "İşlem durduruldu");
+          setText("#job-detail", "Yarım dosyalar korundu; daha sonra yeniden deneyebilirsin.");
+          window.clearInterval(cancelPoll);
+          cancelPoll = 0;
+          window.setTimeout(() => view.classList.remove("cancel-complete"), 4500);
+        }
+      } catch (_) { }
+    }, 600);
   }
 
   function bindCancelFeedback() {
@@ -149,35 +295,41 @@
       const button = event.target.closest("#confirm-accept");
       if (!button) return;
       const title = $("#confirm-title")?.textContent || "";
-      if (/durdur/i.test(button.textContent || "") || /durdur/i.test(title)) {
-        window.setTimeout(showCancelPending, 20);
-      }
+      if (/durdur/i.test(button.textContent || "") || /durdur/i.test(title)) window.setTimeout(showCancelPending, 20);
     });
   }
 
-  function keepDecorationsAlive() {
+  function applyOverhaul() {
+    installBrand();
+    installStaticMascots();
+    installLibraryHero();
+    installHelpStepIcons();
+    installStudyArtwork();
+    ensureDownloadHero();
+    decorateLessonCards();
+    decorateQueue();
+    refreshTourSpotlight();
+  }
+
+  function observeUi() {
     const root = $("#app");
     if (!root) return;
     let timer = 0;
     new MutationObserver(() => {
       window.clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        installBrand();
-        installAnimatedMascots();
-        refreshTourSpotlight();
-      }, 80);
-    }).observe(root, { childList: true, subtree: true });
+      timer = window.setTimeout(applyOverhaul, 70);
+    }).observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
   }
 
   function init() {
-    document.documentElement.classList.add("aurora-ui");
-    installBrand();
-    installAnimatedMascots();
+    document.documentElement.classList.add("aurora-ui-v3");
+    applyOverhaul();
     installFocusHint();
-    watchTour();
-    decorateQueue();
     bindCancelFeedback();
-    keepDecorationsAlive();
+    observeUi();
+    const tourTitle = $("#tour-title");
+    if (tourTitle) new MutationObserver(refreshTourSpotlight).observe(tourTitle, { childList: true, characterData: true, subtree: true });
+    window.setInterval(refreshDownloadDetails, 1200);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
