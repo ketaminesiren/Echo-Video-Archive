@@ -1,7 +1,7 @@
-﻿﻿$ErrorActionPreference = "Stop"
-# Windows PowerShell 5.1 otherwise emits console text in the OEM codepage even
-# under `chcp 65001`, which turns "..." and Turkish letters into mojibake
-# (e.g. "baslatiliyorâ€¦"). Pin the console to UTF-8 so output stays clean.
+﻿$ErrorActionPreference = "Stop"
+# Windows PowerShell 5.1 needs a single UTF-8 BOM to read Turkish text safely.
+# Keep exactly one BOM at the start of this file; a second BOM becomes part of
+# the first variable name and causes a CommandNotFoundException.
 try {
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
     $OutputEncoding = [System.Text.Encoding]::UTF8
