@@ -1,4 +1,11 @@
-﻿$ErrorActionPreference = "Stop"
+﻿﻿$ErrorActionPreference = "Stop"
+# Windows PowerShell 5.1 otherwise emits console text in the OEM codepage even
+# under `chcp 65001`, which turns "..." and Turkish letters into mojibake
+# (e.g. "baslatiliyorâ€¦"). Pin the console to UTF-8 so output stays clean.
+try {
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    $OutputEncoding = [System.Text.Encoding]::UTF8
+} catch { }
 $AppRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $DataRoot = Join-Path $env:LOCALAPPDATA "EchoWraith"
 $RuntimeRoot = Join-Path $DataRoot "runtime"
@@ -46,7 +53,7 @@ function Test-Python([string]$Candidate, [string[]]$Prefix = @()) {
 
 try {
     Write-LunaBanner
-    Write-Step "EchoWraith başlatılıyor…"
+    Write-Step "EchoWraith başlatılıyor..."
     $Python = $null
     if (Get-Command py -ErrorAction SilentlyContinue) {
         $Python = Test-Python "py" @("-3.12")
@@ -58,7 +65,7 @@ try {
     }
 
     if (-not $Python) {
-        Write-Step "Gerekli Python bileşeni bulunamadı; kullanıcı hesabına otomatik kuruluyor…"
+        Write-Step "Gerekli Python bileşeni bulunamadı; kullanıcı hesabına otomatik kuruluyor..."
         $Installer = Join-Path $RuntimeRoot "python-installer.exe"
         $PythonUrl = "https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe"
         Invoke-WebRequest -Uri $PythonUrl -OutFile $Installer -UseBasicParsing
@@ -73,7 +80,7 @@ try {
     $VenvPython = Join-Path $VenvRoot "Scripts\python.exe"
     $VenvPythonW = Join-Path $VenvRoot "Scripts\pythonw.exe"
     if (-not (Test-Path $VenvPython)) {
-        Write-Step "İlk kullanım ortamı hazırlanıyor (yalnızca bir kez)…"
+        Write-Step "İlk kullanım ortamı hazırlanıyor (yalnızca bir kez)..."
         & $Python.File @($Python.Prefix) -m venv $VenvRoot
         if ($LASTEXITCODE -ne 0) { throw "Yerel çalışma ortamı oluşturulamadı." }
     }
@@ -90,19 +97,19 @@ try {
     }
     if ($CurrentHash -ne $SavedHash -or -not $RuntimeHealthy) {
         if ($SavedHash -and -not $RuntimeHealthy) {
-            Write-Step "Çalışma bileşenlerinden biri eksik; otomatik onarım uygulanıyor…"
+            Write-Step "Çalışma bileşenlerinden biri eksik; otomatik onarım uygulanıyor..."
         }
-        Write-Step "Gerekli bileşenler kuruluyor; ilk açılış birkaç dakika sürebilir…"
+        Write-Step "Gerekli bileşenler kuruluyor; ilk açılış birkaç dakika sürebilir..."
         Invoke-Logged $VenvPython @("-m", "pip", "install", "--upgrade", "pip", "wheel")
         Invoke-Logged $VenvPython @("-m", "pip", "install", "--prefer-binary", "-r", $Requirements)
-        Write-Step "Görünmeyen tarayıcı motoru hazırlanıyor…"
+        Write-Step "Görünmeyen tarayıcı motoru hazırlanıyor..."
         Invoke-Logged $VenvPython @("-m", "playwright", "install", "chromium")
-        Write-Step "Video araçları hazırlanıyor…"
+        Write-Step "Video araçları hazırlanıyor..."
         Invoke-Logged $VenvPython @("-c", "from static_ffmpeg import run; print(run.get_or_fetch_platform_executables_else_raise())")
         Set-Content -Path $Marker -Value $CurrentHash -Encoding ASCII
     }
 
-    Write-Step "Hazır. Luna paneli tarayıcıda açıyor…"
+    Write-Step "Hazır. Luna paneli tarayıcıda açıyor..."
     $ServerScript = Join-Path $AppRoot "echowraith_server.py"
     Start-Process -FilePath $VenvPythonW -ArgumentList "`"$ServerScript`"" -WorkingDirectory $AppRoot
     Start-Sleep -Milliseconds 900
