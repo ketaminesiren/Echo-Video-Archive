@@ -3094,44 +3094,19 @@ body {
 /* Living aurora backdrop: slow-drifting colored light behind the content.
    Kept low-alpha and blurred so it reads as a subtle, premium ambience rather
    than a loud gradient — the opaque panels sit on top and it shows in the gaps. */
+/* The aurora backdrop is provided by aurora-overhaul.css (an efficient,
+   transform-animated body::before). This static, un-blurred base just sits
+   under it — no per-frame repaint, so it stays fast. */
 .workspace::before {
-  position: fixed;
-  z-index: -2;
-  inset: var(--topbar) 0 0 var(--sidebar);
-  background:
-    radial-gradient(closest-side at 16% 22%, rgba(79, 140, 255, 0.30), transparent),
-    radial-gradient(closest-side at 84% 14%, rgba(139, 92, 246, 0.26), transparent),
-    radial-gradient(closest-side at 72% 84%, rgba(45, 212, 191, 0.18), transparent),
-    radial-gradient(closest-side at 26% 80%, rgba(244, 114, 152, 0.16), transparent);
-  background-size: 190% 190%, 200% 200%, 210% 210%, 220% 220%;
-  filter: blur(46px) saturate(1.15);
-  opacity: 0.55;
-  pointer-events: none;
-  content: "";
-  animation: aurora-flow 38s ease-in-out infinite alternate;
-}
-
-/* Faint base tint + the original artwork underneath the aurora. */
-.workspace::after {
   position: fixed;
   z-index: -3;
   inset: var(--topbar) 0 0 var(--sidebar);
   background:
-    linear-gradient(180deg, rgba(11, 16, 32, 0.88), rgba(8, 12, 23, 0.97)),
+    linear-gradient(180deg, rgba(11, 16, 32, 0.55), rgba(8, 12, 23, 0.78)),
     url("./assets/echo-background.webp") center / cover no-repeat;
-  opacity: 0.9;
+  opacity: 0.55;
   pointer-events: none;
   content: "";
-}
-
-@keyframes aurora-flow {
-  0% { background-position: 0% 0%, 100% 0%, 50% 100%, 0% 100%; }
-  50% { background-position: 40% 30%, 65% 40%, 35% 60%, 25% 70%; }
-  100% { background-position: 12% 48%, 92% 8%, 62% 88%, 8% 55%; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .workspace::before { animation: none; }
 }
 
 .brand {
