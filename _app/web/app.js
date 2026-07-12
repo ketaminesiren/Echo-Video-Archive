@@ -741,13 +741,13 @@
     const ratio = job.total ? clamp(((job.done || 0) + (active?.progress || 0)) / job.total, 0, 1) : (active?.progress || 0);
     $("#job-percent").textContent = formatPercent(ratio, Boolean(job.busy));
     $("#job-ring-progress").style.strokeDashoffset = `${113.1 * (1 - ratio)}`;
-    $("#job-label").textContent = job.busy ? (job.paused ? "DURAKLATILDI" : "İŞLEM SÜRÜYOR") : "İŞLEM YOK";
+    $("#job-label").textContent = job.busy ? (job.stopping ? "DURDURULUYOR" : job.paused ? "DURAKLATILDI" : "İŞLEM SÜRÜYOR") : "İŞLEM YOK";
     $("#job-title").textContent = job.title || (job.busy ? job.label : "Kuyruk hazır");
     $("#job-detail").textContent = job.detail || (job.busy ? `${job.done || 0}/${job.total || 0} tamamlandı` : "Kütüphaneden ders seçerek indirmeyi başlatabilirsin.");
     $("#pause-job").innerHTML = `<span data-icon="${job.paused ? "play" : "pause"}"></span>${job.paused ? "Devam et" : "Duraklat"}`;
     injectIcons($("#pause-job"));
     $("#connection-banner").classList.toggle("is-hidden", !job.busy);
-    $("#connection-copy").textContent = job.paused ? "İşlem duraklatıldı" : (job.title || job.label || "İşlem sürüyor…");
+    $("#connection-copy").textContent = job.stopping ? "İşlem durduruluyor…" : job.paused ? "İşlem duraklatıldı" : (job.title || job.label || "İşlem sürüyor…");
     const activeCount = model.lessons.filter((lesson) => ["İndiriliyor", "Birleştiriliyor", "Dönüştürülüyor", "Kaynak aranıyor"].includes(lesson.status)).length;
     $("#download-badge").textContent = activeCount;
     $("#download-badge").classList.toggle("is-hidden", !activeCount);
@@ -968,6 +968,9 @@
     const overlay = $("#tour-overlay");
     const spot = $("#tour-spotlight");
     const target = step.target ? $(step.target) : null;
+    // Bring the target into view first (e.g. the Odak Modu button lives low in
+    // the player controls), otherwise the spotlight would sit off-screen.
+    if (target && target.offsetParent !== null) { try { target.scrollIntoView({ block: "center", inline: "center" }); } catch (error) { /* older browsers */ } }
     const rect = target && target.offsetParent !== null ? target.getBoundingClientRect() : null;
     if (!rect || rect.width < 4 || rect.height < 4) {
       spot.classList.add("is-hidden");
@@ -1160,7 +1163,7 @@
     if (action === "hide-webcam") { const card = $("#webcam-card"); const collapsed = card.classList.toggle("is-collapsed"); $("#media-rail").classList.toggle("webcam-collapsed", collapsed); target.classList.toggle("is-active", collapsed); target.setAttribute("aria-label", collapsed ? "Kamerayı göster" : "Kamerayı gizle"); return; }
     if (action === "toggle-chat-follow") { ui.chatFollow = !ui.chatFollow; target.classList.toggle("is-active", ui.chatFollow); toast("Sohbet takibi", ui.chatFollow ? "Oynatılırken etkin mesaj izlenecek." : "Otomatik kaydırma kapatıldı.", "info"); return; }
     if (action === "pause-job") { try { await request("/pause", { method: "POST" }); await refreshState(true); } catch (error) { toast("İşlem değiştirilemedi", error.message, "error"); } return; }
-    if (action === "cancel-job") return showConfirm("İşlem durdurulsun mu?", "Yarım dosyalar korunur; daha sonra kaldığı yerden devam edebilirsin.", "Durdur", async () => { await request("/cancel", { method: "POST" }); await refreshState(true); toast("Durdurma isteği gönderildi", "Aktif adım güvenli biçimde kapatılıyor.", "info"); });
+    if (action === "cancel-job") return showConfirm("İşlem durdurulsun mu?", "Yarım dosyalar korunur; daha sonra kaldığı yerden devam edebilirsin.", "Durdur", async () => { model.job.stopping = true; renderJob(); await request("/cancel", { method: "POST" }); await refreshState(true); toast("Durduruluyor", "Aktif adım güvenli biçimde kapatılıyor…", "info"); });
     if (action === "clear-log") { ui.logs = []; return renderLogs(); }
     if (action === "toggle-log-detail") { ui.logDetail = !ui.logDetail; return renderLogSummary(); }
     if (action === "login") return startAuth(false);
@@ -1220,8 +1223,8 @@
     if (kind === "auth_ok") { model.authenticated = true; renderSettings(); toast("Oturum hazır", "Site bağlantısı başarıyla kuruldu.", "success"); return; }
     if (kind === "needs_login") { toast("Tarayıcı girişi bekleniyor", "Açılan Chrome penceresinde öğrenci girişini tamamla.", "info", 6000); return; }
     if (kind === "job_started") { model.job.busy = true; model.job.label = String(payload || "İşlem sürüyor"); renderJob(); return; }
-    if (["job_done", "job_cancelled"].includes(kind)) { model.job.busy = false; model.job.title = String(payload || "Tamamlandı"); showRecovery({ active: false }); $("#study-progress").classList.add("is-hidden"); toast(kind === "job_done" ? "İşlem tamamlandı" : "İşlem durduruldu", String(payload || ""), kind === "job_done" ? "success" : "info"); refreshState(true).then(() => { if (ui.view === "study" && ui.studyKey) loadStudyData(ui.studyKey); }); return; }
-    if (kind === "job_error") { model.job.busy = false; showRecovery({ active: false }); $("#study-progress").classList.add("is-hidden"); toast("İşlem hatası", `${payload.message || String(payload)}${payload.suggestion ? ` ${payload.suggestion}` : ""}`, "error", 8500); refreshState(true); return; }
+    if (["job_done", "job_cancelled"].includes(kind)) { model.job.busy = false; model.job.stopping = false; model.job.title = String(payload || "Tamamlandı"); showRecovery({ active: false }); $("#study-progress").classList.add("is-hidden"); toast(kind === "job_done" ? "İşlem tamamlandı" : "İşlem durduruldu", String(payload || ""), kind === "job_done" ? "success" : "info"); refreshState(true).then(() => { if (ui.view === "study" && ui.studyKey) loadStudyData(ui.studyKey); }); return; }
+    if (kind === "job_error") { model.job.busy = false; model.job.stopping = false; showRecovery({ active: false }); $("#study-progress").classList.add("is-hidden"); toast("İşlem hatası", `${payload.message || String(payload)}${payload.suggestion ? ` ${payload.suggestion}` : ""}`, "error", 8500); refreshState(true); return; }
     if (kind === "scan_progress") { model.job.detail = `Sayfa ${payload.page} · ${payload.count} ders bulundu`; renderJob(); return; }
     if (kind === "scan_complete") { refreshState(true); return; }
     if (kind === "lesson_update") { const index = model.lessons.findIndex((lesson) => lesson.key === payload.key); if (index >= 0) model.lessons[index] = { ...model.lessons[index], ...payload }; else model.lessons.push(payload); renderAll(); return; }

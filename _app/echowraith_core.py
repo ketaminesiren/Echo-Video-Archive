@@ -2674,6 +2674,17 @@ class WorkerController:
     def busy(self) -> bool:
         return bool(self.thread and self.thread.is_alive())
 
+    @property
+    def stopping(self) -> bool:
+        return bool(self.busy and self.stop_event.is_set())
+
+    def _interruptible_sleep(self, seconds: float) -> None:
+        deadline = time.monotonic() + max(0.0, seconds)
+        while time.monotonic() < deadline:
+            if self.stop_event.is_set():
+                return
+            time.sleep(0.1)
+
     def _start(self, target: Callable[[], None]) -> None:
         if self.busy:
             raise RuntimeError("Başka bir işlem hâlâ çalışıyor.")
@@ -2799,6 +2810,8 @@ class WorkerController:
                         self.sink.emit("status", f"{index}/{len(lessons)} · {lesson.title}")
                         final_error: Exception | None = None
                         for attempt in range(1, 4):
+                            if self.stop_event.is_set():
+                                raise CancelledError("Dönüştürme durduruldu.")
                             try:
                                 updated = engine.process(lesson)
                                 self.store.lessons[updated.key] = updated
@@ -2810,7 +2823,7 @@ class WorkerController:
                             except Exception as exc:
                                 final_error = exc
                                 diagnosis = self.sink.exception("LESSON", exc, lesson_key=lesson.key, attempt=attempt)
-                                if attempt >= 3 or not diagnosis["recoverable"]:
+                                if attempt >= 3 or not diagnosis["recoverable"] or self.stop_event.is_set():
                                     break
                                 lesson.recovery_count += 1
                                 delay = min(10.0, 1.4**attempt + random.random())
@@ -2820,7 +2833,9 @@ class WorkerController:
                                     suggestion=diagnosis["suggestion"],
                                     lesson_key=lesson.key,
                                 )
-                                time.sleep(delay)
+                                self._interruptible_sleep(delay)
+                        if self.stop_event.is_set():
+                            raise CancelledError("Dönüştürme durduruldu.")
                         if final_error is not None:
                             diagnosis = diagnose_exception(final_error)
                             lesson.status = "Hata"
@@ -2840,7 +2855,7 @@ class WorkerController:
                         self.progress_done = index
                         self.store.save()
                         self.sink.emit("overall_progress", {"done": index, "total": len(lessons), "title": lesson.title})
-                        time.sleep(max(0.0, self.store.settings.request_delay))
+                        self._interruptible_sleep(max(0.0, self.store.settings.request_delay))
                 self.sink.emit("job_done", f"{completed}/{len(lessons)} ders tamamlandı")
             except CancelledError as exc:
                 # A stopped lesson must not keep a transient status, or it would

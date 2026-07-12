@@ -1,4 +1,4 @@
-﻿﻿$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 # Windows PowerShell 5.1 otherwise emits console text in the OEM codepage even
 # under `chcp 65001`, which turns "..." and Turkish letters into mojibake
 # (e.g. "baslatiliyorâ€¦"). Pin the console to UTF-8 so output stays clean.

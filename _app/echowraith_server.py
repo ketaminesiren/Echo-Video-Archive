@@ -113,6 +113,7 @@ def serialize_lesson(lesson: core.Lesson) -> dict[str, Any]:
 def job_state() -> dict[str, Any]:
     return {
         "busy": WORKER.busy,
+        "stopping": WORKER.stopping,
         "paused": WORKER.busy and not WORKER.pause_event.is_set(),
         "label": WORKER.job_label,
         "title": WORKER.job_title,
