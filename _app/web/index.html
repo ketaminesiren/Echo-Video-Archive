@@ -305,7 +305,14 @@
     </div>
 
     <div id="tour-overlay" class="tour-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="tour-title">
-      <div class="tour-shell"><div class="tour-art" data-pose="0"><img src="./assets/echo-mascot.webp" alt="EchoWraith rehberi Luna" /><span class="tour-glow"></span></div><div class="tour-copy"><span class="eyebrow">LUNA’NIN REHBERİ</span><h2 id="tour-title">Şefim, arşivin sana ihtiyacı var.</h2><p id="tour-text">Ben Luna. İlk kurulumu birlikte birkaç kolay adımda tamamlayacağız.</p><div id="tour-dots" class="tour-dots"></div><div class="tour-actions"><button class="button ghost" data-action="skip-tour" type="button">Şimdilik geç</button><button id="tour-next" class="button primary" data-action="next-tour" type="button">Başlayalım</button></div></div></div>
+      <div class="tour-card">
+        <div class="tour-art" data-pose="0"><span class="tour-glow"></span><img id="tour-luna" src="./assets/echo-mascot.webp" alt="EchoWraith rehberi Luna" /></div>
+        <div class="tour-body">
+          <div class="tour-copy"><span class="eyebrow"><span id="tour-step-no">1</span>/<span id="tour-step-total">10</span> · LUNA REHBERİ</span><h2 id="tour-title">Şefim, arşivin sana ihtiyacı var.</h2><p id="tour-text">Ben Luna. İlk kurulumu birlikte birkaç kolay adımda tamamlayacağız.</p></div>
+          <div id="tour-dots" class="tour-dots"></div>
+          <div class="tour-actions"><button class="button ghost compact" data-action="skip-tour" type="button">Turu geç</button><span class="tour-spacer"></span><button id="tour-back" class="button ghost compact is-hidden" data-action="prev-tour" type="button">Geri</button><button id="tour-next" class="button primary compact" data-action="next-tour" type="button">Başlayalım</button></div>
+        </div>
+      </div>
     </div>
 
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>

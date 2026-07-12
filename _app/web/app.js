@@ -142,18 +142,23 @@
     team: "Luna",
   };
 
+  // Her adım gerçek bir ekrana götürür (view) ve Luna'nın bir pozunu gösterir
+  // (pose). Poz dosyaları henüz yoksa mevcut maskota düşülür.
   const tourSteps = [
-    { title: "Şefim, arşivin sana ihtiyacı var.", text: "Ben Luna. Adım adım göstereceğim; hiçbir teknik bilgiye gerek yok. Site hesabını bağlayıp derslerini düzenli ve çevrimdışı bir arşive dönüştüreceğiz." },
-    { title: "1) Önce hesabını bağla.", text: "Sağ üstteki dişli (Ayarlar) düğmesine gir, Efsane Uzem e-posta ve şifreni bir kez yaz, “Oturumu aç” de. Şifren hiçbir yere kaydedilmez." },
-    { title: "2) Dersleri tara.", text: "Kütüphanedeki “Dersleri tara” düğmesine bas. Tüm ders listen otomatik bulunur. Gerekirse kısa bir tarayıcı penceresi açılıp kendiliğinden kapanır." },
-    { title: "3) Seç ve indir.", text: "İstediğin derslerin köşesindeki kutucuğu işaretle, sonra “Seçilenleri indir” de. Hızı, yüzdeyi ve kalan süreyi “İndirmeler” bölümünde canlı izleyebilirsin." },
-    { title: "4) Dersi izle.", text: "İndirilen bir derse tıkla. Ana ders videosu, öğretmen kamerası ve sohbet ayrı ama tam senkron oynar. Oynat/duraklat, 10 sn ileri-geri ve oynatma hızını alttaki çubuktan kullan." },
-    { title: "Sağdaki panel: sohbet, notlar, kamera.", text: "Sağ tarafta dersin sohbetini okuyabilir, istediğin ana kendi notunu ekleyebilir ve öğretmen kamerasını küçültüp büyütebilirsin. Bir mesaja tıklarsan video o ana gider." },
-    { title: "Odak Modu ve Tam Ekran.", text: "Alttaki “Odak Modu” düğmesi her şeyi gizleyip yalnızca ders videosunu büyütür; kamera küçük bir köşe penceresi olarak kalır. Çıkmak için Esc’e bas. Yanındaki düğme ise Tam Ekran açar." },
-    { title: "Kaldığın yerden devam.", text: "Nerede bıraktığın otomatik hatırlanır. Kütüphanenin üstündeki “Kaldığın yerden” kartından veya “İzleme Geçmişi” bölümünden tek dokunuşla devam edebilirsin." },
-    { title: "Transkript ve Test (Deneysel).", text: "“Transkript & Test” bölümünde bir dersi yazıya çevirip kendine çoktan seçmeli test çıkarabilirsin. Bu özellik hâlâ geliştiriliyor (deneysel); sonuçlar zaman zaman eksik olabilir." },
-    { title: "Hazırsın, şefim.", text: "Bir sorun olursa bekle; EchoWraith uygun çözümü kendi dener. Bu rehberi istediğin an Ayarlar’dan yeniden başlatabilirsin. İyi çalışmalar!" },
+    { title: "Merhaba şefim, ben Luna.", text: "EchoWraith’i ben tasarlayıp kodladım. Şimdi seni bütün ekranlarda gezdireceğim; hiçbir teknik bilgiye gerek yok. Hazırsan başlayalım.", view: "library", pose: "wave" },
+    { title: "1) Hesabını bağla.", text: "Sağ üstteki dişli (Ayarlar) düğmesine gir, Efsane Uzem e-posta ve şifreni bir kez yaz, “Oturumu aç” de. Şifren hiçbir yere kaydedilmez.", view: "library", pose: "point" },
+    { title: "2) Dersleri tara.", text: "Kütüphanedeki “Dersleri tara” düğmesine bas; tüm ders listen otomatik bulunur. Gerekirse kısa bir tarayıcı penceresi açılıp kendiliğinden kapanır.", view: "library", pose: "point" },
+    { title: "3) Seç ve indir.", text: "İşte İndirme Merkezi. Derslerin köşesindeki kutucuğu işaretleyip “Seçilenleri indir” dersin; hız, yüzde ve kalan süreyi burada canlı izlersin.", view: "downloads", pose: "run" },
+    { title: "Durum kartı ve günlük.", text: "İndirme sürerken bu kart sana yüzdeyi ve o an ne olduğunu sade biçimde gösterir. Teknik ayrıntı istersen “Detaylandır” diyebilirsin.", view: "downloads", pose: "point" },
+    { title: "4) Dersi izle.", text: "Bir dersi açtığında ana video, öğretmen kamerası ve sohbet ayrı ama tam senkron oynar. Oynat/duraklat, 10 sn ileri-geri ve oynatma hızını alttaki çubuktan yönetirsin.", view: "watch", pose: "run" },
+    { title: "Sağ panel: sohbet, notlar, kamera.", text: "Sağ tarafta dersin sohbetini okur, istediğin ana kendi notunu eklersin. Bir mesaja dokununca video o ana gider. Kamerayı küçültüp büyütebilirsin.", view: "watch", pose: "point" },
+    { title: "Odak Modu ve Tam Ekran.", text: "Alttaki Odak Modu düğmesi her şeyi gizleyip yalnızca videoyu büyütür; kamera küçük bir köşe penceresi olarak kalır. Çıkmak için Esc. Yanındaki düğme Tam Ekran açar.", view: "watch", pose: "point" },
+    { title: "Kaldığın yerden devam.", text: "Nerede bıraktığın otomatik hatırlanır. İzleme Geçmişi’nden veya Kütüphanenin üstündeki karttan tek dokunuşla devam edebilirsin.", view: "history", pose: "run" },
+    { title: "Transkript ve Test (Deneysel).", text: "Bir dersi yazıya çevirip kendine çoktan seçmeli test çıkarabilirsin; her şey bu bilgisayarda çalışır. Bu özellik hâlâ geliştiriliyor, sonuçlar bazen eksik olabilir.", view: "study", pose: "point" },
+    { title: "Hazırsın, şefim!", text: "Bir sorun olursa bekle; EchoWraith uygun çözümü kendi dener. Bu turu istediğin an “Nasıl Kullanılır?” bölümünden yeniden başlatabilirsin. Kolay gelsin!", view: "help", pose: "thumb" },
   ];
+
+  const TOUR_POSES = { wave: "luna-wave", point: "luna-point", run: "luna-run", thumb: "luna-thumb" };
 
   const demoChats = [
     { time: 623, sender: "Zeynep A.", text: "Hocam katılım hakkı tam olarak neyi kapsıyor?" },
@@ -925,24 +930,42 @@
   }
 
   function showTour(force = false) {
-    if (!force && localStorage.getItem("echowraith-tour-4") === "done") return;
+    if (!force && localStorage.getItem("echowraith-tour-5") === "done") return;
     ui.tourIndex = 0;
     $("#tour-overlay").classList.remove("is-hidden");
+    document.body.classList.add("tour-active");
     renderTour();
+  }
+
+  function tourViewFor(step) {
+    // The watch screen needs a downloaded lesson; on a first run there is none,
+    // so fall back to the library instead of bouncing out of the tour.
+    if (step.view === "watch" && !PREVIEW && !model.lessons.some((lesson) => lesson.status === "Tamamlandı" && lesson.output_path)) return "library";
+    return step.view || "library";
   }
 
   function renderTour() {
     const step = tourSteps[ui.tourIndex];
+    setView(tourViewFor(step));
+    $("#tour-step-no").textContent = ui.tourIndex + 1;
+    $("#tour-step-total").textContent = tourSteps.length;
     $("#tour-title").textContent = step.title;
     $("#tour-text").textContent = step.text;
     $("#tour-dots").innerHTML = tourSteps.map((_item, index) => `<i class="${index === ui.tourIndex ? "is-active" : ""}"></i>`).join("");
-    $("#tour-next").textContent = ui.tourIndex + 1 >= tourSteps.length ? "EchoWraith’i aç" : "Devam et";
+    $("#tour-back").classList.toggle("is-hidden", ui.tourIndex === 0);
+    $("#tour-next").textContent = ui.tourIndex + 1 >= tourSteps.length ? "Bitir ve başla" : "Devam et";
+    const pose = TOUR_POSES[step.pose] || "luna-wave";
+    const luna = $("#tour-luna");
+    luna.onerror = () => { luna.onerror = null; luna.src = "./assets/echo-mascot.webp"; };
+    luna.src = `./assets/${pose}.webp`;
     $(".tour-art").dataset.pose = String(ui.tourIndex % 4);
   }
 
   function closeTour() {
-    localStorage.setItem("echowraith-tour-4", "done");
+    localStorage.setItem("echowraith-tour-5", "done");
     $("#tour-overlay").classList.add("is-hidden");
+    document.body.classList.remove("tour-active");
+    setView("library");
   }
 
   function renderAll() {
@@ -1121,6 +1144,7 @@
     if (action === "replay-tour") { $("#settings-dialog")?.close(); showTour(true); return; }
     if (action === "skip-tour") { closeTour(); return; }
     if (action === "next-tour") { if (ui.tourIndex + 1 >= tourSteps.length) closeTour(); else { ui.tourIndex += 1; renderTour(); } return; }
+    if (action === "prev-tour") { if (ui.tourIndex > 0) { ui.tourIndex -= 1; renderTour(); } return; }
     if (action === "open-file") { try { await request(`/lessons/${encodeURIComponent(ui.currentKey)}/open`, { method: "POST" }); } catch (error) { toast("Dosya açılamadı", error.message, "error"); } return; }
     if (action === "delete-note") { const lesson = currentLesson(); const id = target.dataset.id; lesson.bookmarks = (lesson.bookmarks || []).filter((note) => note.id !== id); renderNotes(); if (!PREVIEW) request(`/lessons/${encodeURIComponent(lesson.key)}/bookmarks/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {}); return; }
     if (action === "check-update") {
