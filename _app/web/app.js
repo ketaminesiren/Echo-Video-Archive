@@ -155,6 +155,7 @@
     { title: "Odak Modu ve Tam Ekran.", text: "Alttaki Odak Modu düğmesi her şeyi gizleyip yalnızca videoyu büyütür; kamera küçük bir köşe penceresi olarak kalır. Çıkmak için Esc. Yanındaki düğme Tam Ekran açar.", view: "watch", pose: "point", target: '[data-action="theater"]' },
     { title: "Kaldığın yerden devam.", text: "Nerede bıraktığın otomatik hatırlanır. İzleme Geçmişi’nden veya Kütüphanenin üstündeki karttan tek dokunuşla devam edebilirsin.", view: "history", pose: "run", target: '.nav-item[data-view="history"]' },
     { title: "Transkript ve Test (Deneysel).", text: "Bir dersi yazıya çevirip kendine çoktan seçmeli test çıkarabilirsin; her şey bu bilgisayarda çalışır. Bu özellik hâlâ geliştiriliyor, sonuçlar bazen eksik olabilir.", view: "study", pose: "point", target: '.nav-item[data-view="study"]' },
+    { title: "Küçük not: korkma!", text: "İndirme sırasında ekranda bir an siyah bir komut penceresi açılıp kendiliğinden kapanabilir — bu tamamen normaldir, EchoWraith arka planda çalışıyordur, bir şey bozulmaz. Bir sorun olursa üstte turuncu bir “otomatik çözüm” şeridi belirir ve sen siteyi kullanmaya devam edebilirsin.", view: "downloads", pose: "wave", target: "#log-summary" },
     { title: "Hazırsın, şefim!", text: "Bir sorun olursa bekle; EchoWraith uygun çözümü kendi dener. Bu turu istediğin an “Nasıl Kullanılır?” bölümünden yeniden başlatabilirsin. Kolay gelsin!", view: "help", pose: "thumb", target: null },
   ];
 

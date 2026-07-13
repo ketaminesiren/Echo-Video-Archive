@@ -1691,6 +1691,8 @@ class DownloadEngine:
         ]
         try:
             self._run_process(command, lesson)
+        except CancelledError:
+            raise
         except RuntimeError as error:
             lesson.recovery_count += 1
             self.sink.recovery(
@@ -1930,6 +1932,10 @@ class DownloadEngine:
                 extra_env=process_env,
                 stall_timeout=900.0,
             )
+        except CancelledError:
+            # A user Stop must never be mistaken for a codec/TLS failure and
+            # relaunched through the fallback chain below.
+            raise
         except RuntimeError as first_error:
             last_error = first_error
             if encoder != "libx264":
@@ -2137,6 +2143,11 @@ class DownloadEngine:
         *,
         stall_timeout: float = 600.0,
     ) -> None:
+        # A Stop can land between two fallback attempts. Never spawn a fresh
+        # child once the user has asked to halt, otherwise a killed render
+        # immediately relaunches and the machine keeps running at full tilt.
+        if self.stop_event.is_set():
+            raise CancelledError("Dönüştürme durduruldu.")
         creationflags = 0
         popen_kwargs: dict[str, Any] = {}
         if os.name == "nt":
@@ -2815,6 +2826,11 @@ class WorkerController:
                             try:
                                 updated = engine.process(lesson)
                                 self.store.lessons[updated.key] = updated
+                                # process() sets the final "Tamamlandı" state but
+                                # never emits it, so push it now — otherwise the
+                                # card is stuck on its last transient status even
+                                # though the render is finished.
+                                self.sink.emit("lesson_update", asdict(updated))
                                 completed += 1
                                 final_error = None
                                 break

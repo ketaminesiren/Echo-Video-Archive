@@ -204,6 +204,32 @@
     if (node) node.textContent = value;
   }
 
+  // Progress history keyed by lesson so pace/ETA can be derived on the client.
+  // BBB renders are frame-based, not byte streams, so the server often has no
+  // download_speed/bytes/eta to report; we compute a smoothed pace from how
+  // fast `progress` itself moves, which always works while it advances.
+  let paceKey = "";
+  let paceSamples = [];
+
+  function derivePace(key, progress) {
+    const now = Date.now();
+    if (key !== paceKey) {
+      paceKey = key;
+      paceSamples = [];
+    }
+    paceSamples.push({ t: now, p: progress });
+    // Keep a ~25s window so a brief stall does not zero the pace instantly.
+    while (paceSamples.length > 2 && now - paceSamples[0].t > 25000) paceSamples.shift();
+    const first = paceSamples[0];
+    const last = paceSamples[paceSamples.length - 1];
+    const dt = (last.t - first.t) / 1000;
+    const dp = last.p - first.p;
+    if (dt < 1.5 || dp <= 0) return { velocity: 0, remaining: 0 };
+    const velocity = dp / dt; // fraction per second
+    const remaining = velocity > 0 ? Math.max(0, (1 - last.p) / velocity) : 0;
+    return { velocity, remaining };
+  }
+
   async function refreshDownloadDetails() {
     if (!$("#downloads-view.is-active")) return;
     try {
@@ -211,26 +237,45 @@
       if (!response.ok) return;
       const state = await response.json();
       const active = (state.lessons || []).find((lesson) => ["İndiriliyor", "Birleştiriliyor", "Dönüştürülüyor", "Kaynak aranıyor"].includes(lesson.status));
-      const percentText = $("#job-percent")?.textContent || "0%";
-      const percent = parsePercent(percentText);
-      const speed = active?.download_speed ? `${formatBytes(active.download_speed)}/sn` : "—";
-      const bytes = active?.bytes_downloaded ? formatBytes(active.bytes_downloaded) : "—";
-      const eta = active?.eta_seconds ? formatSeconds(active.eta_seconds) : "—";
-      const totalText = active?.known_size ? `${bytes} / ${formatBytes(active.known_size)}` : bytes;
+
+      // The lesson's own progress (0..1) is the source of truth; fall back to
+      // the header percent only when no active lesson is exposed yet.
+      let fraction = active && typeof active.progress === "number" ? active.progress : parsePercent($("#job-percent")?.textContent || "0%") / 100;
+      fraction = Math.max(0, Math.min(1, fraction || 0));
+      const percent = Math.round(fraction * 100);
+
+      const pace = active ? derivePace(active.key || "job", fraction) : { velocity: 0, remaining: 0 };
+
+      // Prefer a real server ETA; otherwise use the client-derived remaining.
+      const etaSeconds = active?.eta_seconds > 0 ? active.eta_seconds : pace.remaining;
+      const eta = etaSeconds > 0 ? formatSeconds(etaSeconds) : "—";
+
+      // Byte-stream downloads report speed/size; renders do not, so show the
+      // processing pace as %/dk instead of a blank so the field is never dead.
+      let speed;
+      if (active?.download_speed > 0) speed = `${formatBytes(active.download_speed)}/sn`;
+      else if (pace.velocity > 0) speed = `%${(pace.velocity * 100 * 60).toFixed(1)}/dk`;
+      else speed = "—";
+
+      let progressText;
+      if (active?.known_size && active?.bytes_downloaded) progressText = `${formatBytes(active.bytes_downloaded)} / ${formatBytes(active.known_size)}`;
+      else if (active) progressText = `%${percent}`;
+      else progressText = "—";
+
       const stage = active?.status || (state.job?.busy ? state.job?.label || "İşlem sürüyor" : "Hazır");
 
       const bar = $("#overhaul-job-progress");
       if (bar) bar.style.width = `${percent}%`;
       setText("#overhaul-speed", speed);
-      setText("#overhaul-bytes", totalText);
+      setText("#overhaul-bytes", progressText);
       setText("#overhaul-eta", eta);
       setText("#overhaul-stage", stage);
-      setText("#overhaul-status-bytes", totalText);
+      setText("#overhaul-status-bytes", progressText);
       setText("#overhaul-status-speed", speed);
       setText("#overhaul-status-eta", eta);
 
-      if (active?.eta_seconds) {
-        const finish = new Date(Date.now() + active.eta_seconds * 1000);
+      if (etaSeconds > 0) {
+        const finish = new Date(Date.now() + etaSeconds * 1000);
         setText("#overhaul-finish", finish.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }));
       } else {
         setText("#overhaul-finish", "—");

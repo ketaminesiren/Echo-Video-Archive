@@ -377,13 +377,14 @@ class EchoWraithHandler(BaseHTTPRequestHandler):
     def _api_get(self, path: str, query: str, head_only: bool = False) -> bool:
         global LAST_CLIENT_SEEN, CLIENT_LEFT_AT
         LAST_CLIENT_SEEN = time.monotonic()
-        # Any live request means a panel is open again; cancel a pending
-        # auto-close (e.g. the tab was only refreshed, or another tab is active).
-        CLIENT_LEFT_AT = None
         if path == "/api/health":
             self._json({"ok": True, "app": core.APP_NAME, "version": core.APP_VERSION, "team": core.APP_TEAM}, head_only=head_only)
             return True
         if path == "/api/heartbeat":
+            # Only a heartbeat (a live, open panel) cancels a pending auto-close.
+            # A stray events-poll finishing right after the tab closed must NOT,
+            # or the app would keep running with no panel open.
+            CLIENT_LEFT_AT = None
             self._json({"ok": True, "busy": WORKER.busy}, head_only=head_only)
             return True
         if path == "/api/state":
@@ -808,10 +809,10 @@ def main() -> int:
 
     def idle_watchdog() -> None:
         while SERVER_INSTANCE is server:
-            time.sleep(5)
+            time.sleep(2)
             now = time.monotonic()
             left_at = CLIENT_LEFT_AT
-            explicit_close = left_at is not None and now - left_at > 15
+            explicit_close = left_at is not None and now - left_at > 8
             idle_limit = max(60, int(STORE.settings.idle_shutdown_minutes) * 60)
             idle_timeout = now - LAST_CLIENT_SEEN > idle_limit
             if WORKER.busy and not explicit_close:
@@ -837,11 +838,40 @@ def main() -> int:
     try:
         server.serve_forever(poll_interval=0.25)
     finally:
+        try:
+            WORKER.shutdown(timeout=10.0)
+        except Exception:
+            pass
         cleanup()
         server.server_close()
         SERVER_INSTANCE = None
         core.EventSink(BROKER).log("Tüm arka plan kaynakları kapatıldı.", "success", stage="CLEANUP", code="SHUTDOWN_DONE")
+        _kill_own_process_tree()
     return 0
+
+
+def _kill_own_process_tree() -> None:
+    """Guarantee nothing is left behind. After the graceful worker shutdown,
+    force-kill this process and every child it spawned (Chromium, the Playwright
+    node driver, FFmpeg, bbb-dl) so no orphaned Python/browser keeps eating RAM.
+    """
+    pid = os.getpid()
+    try:
+        if os.name == "nt":
+            # /T maps and kills the whole tree while this process is still alive.
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(pid)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=10,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                check=False,
+            )
+    except Exception:
+        pass
+    finally:
+        # Hard-exit so no lingering non-daemon thread keeps the process alive.
+        os._exit(0)
 
 
 if __name__ == "__main__":

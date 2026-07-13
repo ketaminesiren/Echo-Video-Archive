@@ -1153,9 +1153,16 @@ body::after {
     url("./assets/echo-background.webp") center / cover no-repeat !important;
 }
 
+/* Only lightly dim on steps with no target; when a spotlight is active the
+   dimming comes from the spotlight's box-shadow so the highlighted element
+   stays crisp (an opaque overlay here made the whole screen black). */
 .tour-overlay {
-  background: rgba(1, 4, 14, .78) !important;
-  backdrop-filter: blur(8px) saturate(118%);
+  background: rgba(1, 4, 14, .5) !important;
+  backdrop-filter: none !important;
+}
+
+.tour-overlay.has-spotlight {
+  background: transparent !important;
 }
 
 .tour-card {
@@ -1221,12 +1228,12 @@ body::after {
 }
 
 .tour-spotlight {
-  border: 2px solid rgba(101, 226, 255, .98) !important;
+  border: 2px solid rgba(255, 95, 109, .98) !important;
   border-radius: 14px;
   box-shadow:
-    0 0 0 9999px rgba(1, 4, 14, .8),
-    0 0 0 8px rgba(82, 121, 255, .17),
-    0 0 42px rgba(83, 211, 255, .74) !important;
+    0 0 0 9999px rgba(1, 4, 14, .74),
+    0 0 0 7px rgba(255, 95, 109, .22),
+    0 0 40px rgba(255, 95, 109, .7) !important;
 }
 
 .tour-spotlight::before {
@@ -1250,9 +1257,46 @@ body::after {
 .tour-spotlight.is-focus-step {
   border-width: 3px !important;
   box-shadow:
-    0 0 0 9999px rgba(1, 4, 14, .84),
-    0 0 0 10px rgba(82, 121, 255, .2),
-    0 0 50px rgba(83, 211, 255, .86) !important;
+    0 0 0 9999px rgba(1, 4, 14, .78),
+    0 0 0 9px rgba(255, 95, 109, .24),
+    0 0 48px rgba(255, 95, 109, .82) !important;
+}
+
+/* Auto-recovery must not seize the screen. Turn the full-cover overlay into a
+   slim top banner that lets the user keep navigating while a fix runs. */
+.recovery-overlay {
+  inset: 0 0 auto 0 !important;
+  display: block !important;
+  place-items: unset !important;
+  padding: 12px 16px 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  pointer-events: none !important;
+}
+.recovery-overlay .recovery-card {
+  width: min(760px, calc(100% - 24px)) !important;
+  margin: 0 auto !important;
+  padding: 12px 18px !important;
+  grid-template-columns: 42px minmax(0, 1fr) !important;
+  gap: 13px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255, 176, 92, .5) !important;
+  background: linear-gradient(120deg, rgba(46, 30, 12, .97), rgba(28, 20, 40, .97)) !important;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, .5), 0 0 26px rgba(255, 168, 82, .22) !important;
+  pointer-events: auto !important;
+  animation: ew-recovery-drop .32s cubic-bezier(.2, .8, .3, 1) both;
+}
+.recovery-overlay .recovery-card small { color: #ffcf8a !important; }
+.recovery-overlay .recovery-orb {
+  width: 40px !important;
+  height: 40px !important;
+  background: radial-gradient(circle, #ffc978 0 8%, #7a4e1e 10% 28%, #2a1c10 31%) !important;
+  box-shadow: 0 0 22px rgba(255, 176, 92, .55) !important;
+}
+.recovery-overlay .recovery-orb i { border-top-color: #ffd79a !important; }
+@keyframes ew-recovery-drop {
+  from { opacity: 0; transform: translateY(-14px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .focus-mode-hint {
