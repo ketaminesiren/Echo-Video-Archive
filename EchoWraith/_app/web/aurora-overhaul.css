@@ -49,15 +49,47 @@ body::after {
 }
 
 body::before {
-  opacity: .9;
+  opacity: 1;
   background:
-    radial-gradient(ellipse 38% 46% at 12% 22%, rgba(43, 224, 255, .34), transparent 68%),
-    radial-gradient(ellipse 46% 40% at 70% 12%, rgba(92, 76, 255, .4), transparent 70%),
-    radial-gradient(ellipse 42% 48% at 86% 74%, rgba(204, 67, 255, .31), transparent 69%),
-    linear-gradient(122deg, transparent 18%, rgba(46, 220, 255, .13) 38%, rgba(91, 77, 255, .18) 55%, rgba(204, 69, 255, .14) 72%, transparent 88%);
-  background-size: 128% 132%, 136% 126%, 132% 138%, 180% 180%;
-  filter: blur(34px) saturate(165%);
-  animation: ew-aurora-drift 13s ease-in-out infinite alternate;
+    radial-gradient(ellipse 44% 52% at 12% 20%, rgba(43, 224, 255, .5), transparent 66%),
+    radial-gradient(ellipse 52% 46% at 72% 10%, rgba(101, 84, 255, .58), transparent 68%),
+    radial-gradient(ellipse 48% 54% at 88% 78%, rgba(214, 74, 255, .48), transparent 67%),
+    radial-gradient(ellipse 40% 44% at 34% 88%, rgba(56, 235, 214, .34), transparent 70%),
+    linear-gradient(122deg, transparent 12%, rgba(46, 220, 255, .2) 34%, rgba(101, 84, 255, .27) 54%, rgba(214, 72, 255, .22) 72%, transparent 90%);
+  background-size: 140% 146%, 150% 140%, 146% 152%, 138% 142%, 190% 190%;
+  filter: blur(46px) saturate(185%);
+  animation: ew-aurora-drift 20s ease-in-out infinite alternate;
+}
+
+/* A large, slowly rotating conic wash gives the shifting-colour "cinematic
+   ambient" motion (like YouTube's ambient mode) cheaply — only a GPU transform
+   animates, never a repaint. It sits behind every panel and shows through the
+   gaps between cards. */
+.app-shell::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  width: 165vmax;
+  height: 165vmax;
+  margin: -82.5vmax 0 0 -82.5vmax;
+  pointer-events: none;
+  opacity: .5;
+  background: conic-gradient(
+    from 0deg,
+    rgba(43, 224, 255, .4),
+    rgba(101, 84, 255, .5),
+    rgba(214, 74, 255, .42),
+    rgba(56, 235, 214, .36),
+    rgba(43, 224, 255, .4)
+  );
+  filter: blur(90px) saturate(160%);
+  animation: ew-aurora-spin 48s linear infinite;
+}
+
+@keyframes ew-aurora-spin {
+  to { transform: rotate(360deg); }
 }
 
 body::after {
@@ -71,8 +103,8 @@ body::after {
 }
 
 @keyframes ew-aurora-drift {
-  from { background-position: 0% 10%, 38% 0%, 100% 72%, 0% 50%; transform: translate3d(-3%, -2%, 0) rotate(-1deg) scale(1); }
-  to { background-position: 22% 34%, 74% 20%, 72% 48%, 100% 50%; transform: translate3d(4%, 3%, 0) rotate(2deg) scale(1.09); }
+  from { background-position: 0% 8%, 36% 0%, 100% 74%, 20% 100%, 0% 50%; transform: translate3d(-5%, -3%, 0) rotate(-2deg) scale(1.02); }
+  to { background-position: 28% 40%, 78% 26%, 66% 44%, 54% 70%, 100% 50%; transform: translate3d(6%, 4%, 0) rotate(3deg) scale(1.14); }
 }
 
 .app-shell {
@@ -345,10 +377,10 @@ body::after {
 .library-luna-static {
   position: absolute !important;
   z-index: 1 !important;
-  top: -15px;
-  right: 240px;
-  bottom: -34px;
-  width: 270px;
+  top: -26px;
+  right: 150px;
+  bottom: -40px;
+  width: 360px;
   pointer-events: none;
 }
 
@@ -359,11 +391,18 @@ body::after {
   height: 100%;
   object-fit: contain;
   object-position: center bottom;
-  opacity: .9;
-  filter: saturate(.92) brightness(.92) drop-shadow(0 18px 24px rgba(0, 0, 0, .3)) drop-shadow(0 0 28px rgba(79, 112, 255, .3));
+  opacity: .72;
+  /* Softer tone so the busy AI scene reads as ambient art, not a pasted box. */
+  filter: saturate(.82) brightness(.84) contrast(.85) drop-shadow(0 16px 30px rgba(0, 0, 0, .24)) drop-shadow(0 0 46px rgba(96, 122, 255, .32));
   mix-blend-mode: screen;
-  -webkit-mask-image: radial-gradient(ellipse 50% 64% at 50% 51%, #000 34%, rgba(0, 0, 0, .9) 50%, rgba(0, 0, 0, .38) 70%, transparent 100%);
-          mask-image: radial-gradient(ellipse 50% 64% at 50% 51%, #000 34%, rgba(0, 0, 0, .9) 50%, rgba(0, 0, 0, .38) 70%, transparent 100%);
+  /* One left-biased ellipse feathers every edge inside the frame. Centring it
+     at 38% with a 52% radius means the right ~22% is fully transparent before
+     the card's rounded corner is reached, so Luna melts into the hero instead
+     of being hard-clipped on the right. */
+  -webkit-mask-image: radial-gradient(ellipse 52% 76% at 38% 50%, #000 2%, rgba(0, 0, 0, .78) 30%, rgba(0, 0, 0, .26) 56%, transparent 78%);
+          mask-image: radial-gradient(ellipse 52% 76% at 38% 50%, #000 2%, rgba(0, 0, 0, .78) 30%, rgba(0, 0, 0, .26) 56%, transparent 78%);
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
 }
 
 .library-luna-glow {
@@ -1682,7 +1721,7 @@ body.theater-mode .focus-mode-hint { opacity: 1; transform: translateY(0); }
 @media (max-width: 1500px) {
   .lesson-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   #library-view .page-heading { padding-right: 380px; }
-  .library-luna-static { right: 185px; width: 225px; }
+  .library-luna-static { right: 120px; width: 300px; }
   .aurora-download-hero { grid-template-columns: 115px minmax(220px, .9fr) minmax(310px, 1.3fr) 260px; }
   .luna-static.is-download { width: 104px; height: 104px; }
   .help-steps { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
@@ -1743,6 +1782,7 @@ body.theater-mode .focus-mode-hint { opacity: 1; transform: translateY(0); }
 
 @media (prefers-reduced-motion: reduce) {
   body::before { animation: none !important; }
+  .app-shell::before { animation: none !important; }
   #library-view .aurora-library-heading::before,
   .library-luna-glow { animation: none !important; }
   * { scroll-behavior: auto !important; }
