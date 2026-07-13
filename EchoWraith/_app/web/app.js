@@ -277,7 +277,7 @@
     const value = lesson.status || "Bekliyor";
     if (value === "Tamamlandı") return { className: "ready", icon: "check", label: "Çevrimdışı hazır" };
     if (value === "Hata") return { className: "error", icon: "alert", label: "Hata" };
-    if (["İndiriliyor", "Birleştiriliyor", "Dönüştürülüyor", "Kaynak aranıyor"].includes(value)) return { className: "active", icon: "refresh", label: lesson.progress ? `${value} · %${Math.round(lesson.progress * 100)}` : value };
+    if (["İndiriliyor", "Birleştiriliyor", "Dönüştürülüyor", "Kaynak aranıyor"].includes(value)) return { className: "active", icon: "refresh", label: lesson.progress ? `${value} · ${Math.round(lesson.progress * 100)}%` : value };
     return { className: "pending", icon: "clock", label: value };
   }
 
@@ -374,7 +374,7 @@
     const { free = 0, total = 0, used = Math.max(0, total - free) } = model.storage || {};
     const ratio = total ? clamp(used / total, 0, 1) : 0;
     $("#storage-copy").textContent = total ? `${humanBytes(used)} / ${humanBytes(total)}` : "Bilgi alınamadı";
-    $("#storage-percent").textContent = total ? `%${Math.round(ratio * 100)}` : "—";
+    $("#storage-percent").textContent = total ? `${Math.round(ratio * 100)}%` : "—";
     $("#storage-meter").style.width = `${ratio * 100}%`;
   }
 
@@ -520,7 +520,7 @@
     const size = lesson.known_size ? humanBytes(lesson.known_size) : "Hesaplanmadı";
     const source = lesson.source_type || "Bilinmiyor";
     const watched = progressOf(lesson);
-    $("#watch-status-strip").innerHTML = `<div class="status-strip-item"><span class="strip-icon success" data-icon="check"></span><span class="strip-copy"><strong>Çevrimdışı hazır</strong><small>İnternet olmadan izleyebilirsin</small></span></div><div class="status-strip-item"><span class="strip-icon" data-icon="download"></span><span class="strip-copy"><strong>${size}</strong><small>Ders boyutu</small></span></div><div class="status-strip-item"><span class="strip-icon" data-icon="library"></span><span class="strip-copy"><strong>${escapeHtml(source)}</strong><small>Kayıt kaynağı</small></span></div><div class="status-strip-item"><span class="strip-icon ${watched > 0 ? "success" : ""}" data-icon="${watched > 0 ? "history" : "info"}"></span><span class="strip-copy"><strong>${watched ? `%${Math.round(watched * 100)} izlendi` : "Henüz başlanmadı"}</strong><small>${lesson.last_watched_at ? `Son izleme: ${new Date(lesson.last_watched_at).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}` : "İlerlemen otomatik kaydedilir"}</small></span></div>`;
+    $("#watch-status-strip").innerHTML = `<div class="status-strip-item"><span class="strip-icon success" data-icon="check"></span><span class="strip-copy"><strong>Çevrimdışı hazır</strong><small>İnternet olmadan izleyebilirsin</small></span></div><div class="status-strip-item"><span class="strip-icon" data-icon="download"></span><span class="strip-copy"><strong>${size}</strong><small>Ders boyutu</small></span></div><div class="status-strip-item"><span class="strip-icon" data-icon="library"></span><span class="strip-copy"><strong>${escapeHtml(source)}</strong><small>Kayıt kaynağı</small></span></div><div class="status-strip-item"><span class="strip-icon ${watched > 0 ? "success" : ""}" data-icon="${watched > 0 ? "history" : "info"}"></span><span class="strip-copy"><strong>${watched ? `${Math.round(watched * 100)}% izlendi` : "Henüz başlanmadı"}</strong><small>${lesson.last_watched_at ? `Son izleme: ${new Date(lesson.last_watched_at).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}` : "İlerlemen otomatik kaydedilir"}</small></span></div>`;
     injectIcons($("#watch-status-strip"));
   }
 
@@ -572,7 +572,7 @@
     const query = ui.chatQuery.toLocaleLowerCase("tr-TR");
     const messages = (lesson.chat || []).filter((message) => !query || `${message.sender} ${message.text}`.toLocaleLowerCase("tr-TR").includes(query));
     $("#chat-count").textContent = lesson.chat?.length || 0;
-    $("#chat-list").innerHTML = messages.length ? messages.map((message, index) => `<button class="chat-message ${message.teacher ? "is-teacher" : ""}" data-chat-index="${index}" data-time="${Number(message.time) || 0}" type="button"><span class="message-time">${formatTime(message.time)}</span><span class="message-body"><strong class="message-author">${escapeHtml(message.sender || "Katılımcı")}</strong><span class="message-text">${escapeHtml(message.text || "")}</span></span></button>`).join("") : '<div class="chat-empty">Bu kayıt için sohbet bulunamadı.<br>Notlar sekmesini ders çalışırken kullanabilirsin.</div>';
+    $("#chat-list").innerHTML = messages.length ? messages.map((message, index) => `<button class="chat-message ${message.teacher ? "is-teacher" : ""}" data-chat-index="${index}" data-time="${Number(message.time) || 0}" type="button"><span class="message-time">${formatTime(message.time)}</span><span class="message-body"><strong class="message-author">${escapeHtml(message.sender || "Katılımcı")}</strong><span class="message-text">${escapeHtml(message.text || "")}</span></span></button>`).join("") : '<div class="chat-empty luna-chat-empty"><img src="./assets/luna-aurora-watch.webp" alt="Dersi izlemeye hazır Luna" /><strong>Sohbet kaydı bulunamadı</strong><span>Notlar sekmesini ders çalışırken kullanabilirsin.</span></div>';
     updateActiveChat();
   }
 
@@ -730,7 +730,7 @@
       const progress = lesson.status === "Tamamlandı" ? 1 : lesson.progress || 0;
       const transfer = lesson.download_speed ? ` · ${formatSpeed(lesson.download_speed)}${lesson.eta_seconds ? ` · ${formatEta(lesson.eta_seconds)}` : ""}` : "";
       return `<div class="queue-item"><span class="queue-index">${String(index + 1).padStart(2, "0")}</span><span class="queue-copy"><strong>${escapeHtml(lesson.title)}</strong><small>${escapeHtml(lesson.status || "Bekliyor")}${transfer}${lesson.error ? ` · ${escapeHtml(lesson.error)}` : ""}</small></span><span class="queue-progress"><span class="meter"><i style="width:${progress * 100}%"></i></span><span>${formatPercent(progress, true)}</span></span><button class="retry-button" data-action="${lesson.status === "Hata" ? "retry-one" : "toggle-select"}" data-key="${escapeHtml(lesson.key)}" type="button" aria-label="${lesson.status === "Hata" ? "Tekrar dene" : "Kuyruktan çıkar"}"><span data-icon="${lesson.status === "Hata" ? "refresh" : "close"}"></span></button></div>`;
-    }).join("") : '<div class="empty-state luna-empty"><img class="empty-luna" src="./assets/luna-chibi-discover.webp" alt="Arşivi tarayan Luna" /><h2>Kuyruk boş</h2><p>Luna hazır; kütüphaneden ders seçerek indirmeyi başlat.</p></div>';
+    }).join("") : '<div class="empty-state luna-empty"><img class="empty-luna" src="./assets/luna-aurora-download.webp" alt="İndirmeye hazır Luna" /><h2>Kuyruk boş</h2><p>Luna hazır; kütüphaneden ders seçerek indirmeyi başlat.</p></div>';
     injectIcons($("#queue-list"));
     renderJob();
     renderLogs();
@@ -875,7 +875,7 @@
     }
     if (ui.quizIndex >= items.length) {
       const rate = Math.round(ui.quizScore / items.length * 100);
-      body.innerHTML = `<div class="quiz-score"><span><small>TEST TAMAMLANDI</small><strong>%${rate}</strong><h3>${ui.quizScore} / ${items.length} doğru</h3><p>${rate >= 80 ? "Harika gidiyorsun." : rate >= 55 ? "İyi başlangıç; yanlış açıklamalarını tekrar et." : "Transkripti gözden geçirip bir test daha oluştur."}</p><button class="button primary" data-action="reset-quiz" type="button">Tekrar çöz</button></span></div>`;
+      body.innerHTML = `<div class="quiz-score"><span><img class="quiz-score-luna" src="./assets/luna-aurora-success.webp" alt="Başarıyı kutlayan Luna" /><small>TEST TAMAMLANDI</small><strong>${rate}%</strong><h3>${ui.quizScore} / ${items.length} doğru</h3><p>${rate >= 80 ? "Harika gidiyorsun." : rate >= 55 ? "İyi başlangıç; yanlış açıklamalarını tekrar et." : "Transkripti gözden geçirip bir test daha oluştur."}</p><button class="button primary" data-action="reset-quiz" type="button">Tekrar çöz</button></span></div>`;
       return;
     }
     const item = items[ui.quizIndex];
@@ -917,7 +917,7 @@
     const filtered = entries.filter((entry) => ui.logFilter === "all" || String(entry.level || "").toUpperCase() === ui.logFilter);
     $("#diag-job").textContent = model.job?.busy ? (model.job.title || model.job.label || "İşlem sürüyor") : "Sistem hazır";
     $("#diag-stage").textContent = `Son aşama: ${entries[entries.length - 1]?.stage || model.job?.detail || "Hazır"}`;
-    $("#diagnostic-log-list").innerHTML = filtered.length ? filtered.slice(-500).reverse().map((entry) => { const level = String(entry.level || "INFO").toLowerCase(); const stamp = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString("tr-TR") : (entry.time || ""); return `<div class="diagnostic-entry is-${level}"><time>${escapeHtml(stamp)}</time><span class="diag-stage">${escapeHtml(entry.stage || "GENEL")}</span><div><strong>${escapeHtml(entry.message || "")}</strong>${entry.suggestion ? `<p>${escapeHtml(entry.suggestion)}</p>` : ""}</div></div>`; }).join("") : '<div class="study-placeholder"><span data-icon="pulse"></span><strong>Henüz tanılama kaydı yok</strong><p>Bir işlem başladığında bütün aşamalar burada görünür.</p></div>';
+    $("#diagnostic-log-list").innerHTML = filtered.length ? filtered.slice(-500).reverse().map((entry) => { const level = String(entry.level || "INFO").toLowerCase(); const stamp = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString("tr-TR") : (entry.time || ""); return `<div class="diagnostic-entry is-${level}"><time>${escapeHtml(stamp)}</time><span class="diag-stage">${escapeHtml(entry.stage || "GENEL")}</span><div><strong>${escapeHtml(entry.message || "")}</strong>${entry.suggestion ? `<p>${escapeHtml(entry.suggestion)}</p>` : ""}</div></div>`; }).join("") : '<div class="study-placeholder diagnostic-placeholder"><img class="diagnostic-luna" src="./assets/luna-aurora-diagnostics.webp" alt="Sistemi inceleyen Luna" /><strong>Henüz tanılama kaydı yok</strong><p>Bir işlem başladığında bütün aşamalar burada görünür.</p></div>';
     injectIcons($("#diagnostic-log-list"));
   }
 

@@ -7,6 +7,7 @@ import { JSDOM } from "jsdom";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const html = fs.readFileSync(path.join(root, "_app/web/index.html"), "utf8").replace(/<script src="\.\/app\.js" defer><\/script>/, "");
 const rawScript = fs.readFileSync(path.join(root, "_app/web/app.js"), "utf8");
+const rawOverhaulScript = fs.readFileSync(path.join(root, "_app/web/aurora-overhaul.js"), "utf8");
 const script = rawScript
   .replace("const RECOVERY_AUTO_HIDE_MS = 7000;", "const RECOVERY_AUTO_HIDE_MS = 40;")
   .replace("  function showTour(force = false) {", "  window.__showRecoveryForTests = showRecovery;\n\n  function showTour(force = false) {");
@@ -77,12 +78,19 @@ assert(css.includes('body.theater-mode .companion-card'), "focus mode should hid
 const overhaulCss = fs.readFileSync(path.join(root, "_app/web/aurora-overhaul.css"), "utf8");
 assert(overhaulCss.includes("recovery-life") && overhaulCss.includes("empty-luna"), "Luna recovery and empty-state visuals should exist");
 assert(overhaulCss.includes(".recovery-overlay.is-hidden"), "the presentation layer must preserve the recovery hidden state");
+assert(overhaulCss.includes(".help-hero > img.help-luna-static"), "help Luna positioning must override the legacy hero rule");
+assert(overhaulCss.includes(".help-steps article > .help-step-icon"), "help step icons must use the centered high-specificity rule");
+assert(!/%\$\{/.test(rawScript) && !/%\$\{/.test(rawOverhaulScript), "percentages must use the conventional number-before-sign format");
 assert(html.includes("luna-launcher-icon.png"), "the browser should use Luna's launcher icon");
 for (const asset of ["luna-chibi-work.webp", "luna-chibi-celebrate.webp", "luna-chibi-discover.webp"]) {
   assert(fs.existsSync(path.join(root, "_app/web/assets", asset)), `${asset} should be bundled`);
 }
 for (const asset of ["luna-launcher-icon.png", "luna-launcher-icon.ico"]) {
   assert(fs.existsSync(path.join(root, "_app/web/assets", asset)), `${asset} should be bundled`);
+}
+for (const asset of ["guide", "library", "download", "watch", "study", "diagnostics", "history", "success"].map((name) => `luna-aurora-${name}.webp`)) {
+  assert(fs.existsSync(path.join(root, "_app/web/assets", asset)), `${asset} should be bundled`);
+  assert(html.includes(asset) || rawScript.includes(asset) || rawOverhaulScript.includes(asset), `${asset} should be used by the interface`);
 }
 
 dom.window.close();

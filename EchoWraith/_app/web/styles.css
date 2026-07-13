@@ -595,6 +595,7 @@ kbd {
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
+  padding: 0;
   border: 1px solid var(--line);
   background: #121b2b;
   color: #cbd5e1;
@@ -1060,6 +1061,7 @@ h1 {
   z-index: 3;
   top: 11px;
   right: 11px;
+  padding: 0;
   display: grid;
   place-items: center;
   width: 25px;
@@ -1975,6 +1977,7 @@ input[type="range"]::-webkit-slider-thumb {
   place-items: center;
   width: 23px;
   height: 23px;
+  padding: 0;
   border-radius: 5px;
   background: transparent;
   color: var(--faint);
@@ -2359,6 +2362,7 @@ body.theater-mode .webcam-card.is-hidden {
   place-items: center;
   width: 28px;
   height: 28px;
+  padding: 0;
   border-radius: 6px;
   background: transparent;
   color: var(--muted);

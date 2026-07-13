@@ -918,18 +918,18 @@ body::after {
   line-height: 1.75 !important;
 }
 
-.help-luna-static {
+.help-hero > img.help-luna-static {
   position: absolute !important;
   z-index: 2;
-  right: 20px;
-  bottom: -48px;
+  right: 0 !important;
+  bottom: 0 !important;
   width: 430px !important;
-  height: 430px !important;
-  object-fit: contain !important;
+  height: 100% !important;
+  object-fit: cover !important;
   object-position: center !important;
   filter: drop-shadow(0 24px 30px rgba(0, 0, 0, .42)) drop-shadow(0 0 28px rgba(92, 103, 255, .25)) saturate(1.04);
-  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 51%, rgba(0, 0, 0, .94) 62%, transparent 75%);
-          mask-image: radial-gradient(circle at 50% 50%, #000 51%, rgba(0, 0, 0, .94) 62%, transparent 75%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, rgba(0, 0, 0, .82) 20%, #000 42%);
+          mask-image: linear-gradient(90deg, transparent 0, rgba(0, 0, 0, .82) 20%, #000 42%);
 }
 
 .luna-empty {
@@ -1007,17 +1007,23 @@ body::after {
 .help-steps article > b {
   display: grid;
   place-items: center;
+  justify-self: center;
   width: 38px;
   height: 38px;
+  line-height: 1;
   border-radius: 12px;
   color: #fff;
   background: linear-gradient(135deg, #43dfff, #5578ff 55%, #9a58ff);
   box-shadow: 0 0 22px rgba(76, 155, 255, .34);
 }
 
-.help-step-icon {
+.help-steps article > .help-step-icon {
   display: grid;
   place-items: center;
+  align-content: center;
+  justify-items: center;
+  justify-self: center;
+  gap: 0;
   width: 54px;
   height: 54px;
   border: 1px solid rgba(91, 188, 255, .38);
@@ -1027,7 +1033,8 @@ body::after {
   box-shadow: 0 0 24px rgba(83, 90, 255, .16);
 }
 
-.help-step-icon svg {
+.help-steps article > .help-step-icon svg {
+  display: block;
   width: 25px;
   height: 25px;
   fill: none;
@@ -1138,6 +1145,71 @@ body::after {
   background: radial-gradient(circle, rgba(85, 84, 255, .2), rgba(35, 28, 91, .08) 52%, transparent 72%);
 }
 
+.section-luna-scene {
+  position: absolute;
+  z-index: 1;
+  top: 10px;
+  right: 34px;
+  width: 126px;
+  height: 126px;
+  overflow: hidden;
+  border: 1px solid rgba(95, 189, 255, .3);
+  border-radius: 34px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .28), 0 0 30px rgba(92, 76, 255, .23);
+  pointer-events: none;
+}
+
+.section-luna-scene img,
+.watch-luna-chip img,
+.diagnostic-inline-luna {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#history-view > .page-heading {
+  padding-right: 200px;
+}
+
+.section-luna-scene.is-study {
+  right: 190px;
+  width: 112px;
+  height: 112px;
+  border-radius: 30px;
+}
+
+.watch-luna-chip {
+  flex: 0 0 76px;
+  width: 76px;
+  height: 76px;
+  margin-left: auto;
+  overflow: hidden;
+  border: 1px solid rgba(96, 191, 255, .32);
+  border-radius: 23px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .3), 0 0 26px rgba(89, 77, 255, .22);
+}
+
+.diagnostic-inline-luna {
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+  border: 1px solid rgba(96, 190, 255, .3);
+  border-radius: 18px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .28), 0 0 22px rgba(90, 76, 255, .2);
+}
+
+.study-empty-visual img {
+  position: relative;
+  z-index: 2;
+  width: 154px;
+  height: 154px;
+  border: 1px solid rgba(105, 188, 255, .3);
+  border-radius: 38px;
+  object-fit: cover;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .34), 0 0 30px rgba(91, 75, 255, .28);
+}
+
 .study-empty-visual::before,
 .study-empty-visual::after,
 .study-empty-visual i {
@@ -1174,6 +1246,45 @@ body::after {
   color: #94a3c2 !important;
   font-size: 13px;
   line-height: 1.65;
+}
+
+.luna-chat-empty {
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+}
+
+.luna-chat-empty img {
+  width: 128px;
+  height: 128px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(96, 189, 255, .34);
+  border-radius: 34px;
+  object-fit: cover;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, .32), 0 0 28px rgba(88, 79, 255, .24);
+}
+
+.luna-chat-empty strong {
+  color: #eef3ff;
+  font-size: 12px;
+}
+
+.luna-chat-empty span {
+  max-width: 250px;
+  color: #8796b6;
+  line-height: 1.55;
+}
+
+.diagnostic-luna,
+.quiz-score-luna {
+  display: block;
+  width: 168px;
+  height: 168px;
+  margin: 0 auto 16px;
+  border: 1px solid rgba(99, 192, 255, .32);
+  border-radius: 42px;
+  object-fit: cover;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, .34), 0 0 32px rgba(93, 76, 255, .26);
 }
 
 .watch-view {
@@ -1539,6 +1650,7 @@ body.theater-mode .focus-mode-hint { opacity: 1; transform: translateY(0); }
   .library-luna-static { right: 185px; width: 225px; }
   .aurora-download-hero { grid-template-columns: 115px minmax(220px, .9fr) minmax(310px, 1.3fr) 260px; }
   .luna-static.is-download { width: 104px; height: 104px; }
+  .help-steps { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
 
 @media (max-width: 1220px) {
@@ -1550,6 +1662,9 @@ body.theater-mode .focus-mode-hint { opacity: 1; transform: translateY(0); }
   .downloads-grid { grid-template-columns: 1fr !important; }
   .help-steps { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .study-toolbar { grid-template-columns: 1fr 1fr; }
+  .section-luna-scene,
+  .watch-luna-chip { display: none; }
+  #history-view > .page-heading { padding-right: 20px; }
 }
 
 @media (max-width: 850px) {
@@ -1561,7 +1676,13 @@ body.theater-mode .focus-mode-hint { opacity: 1; transform: translateY(0); }
   .page-heading { align-items: flex-start; flex-direction: column; }
   .lesson-grid { grid-template-columns: 1fr; }
   .help-hero { grid-template-columns: 1fr; padding: 28px !important; }
-  .help-luna-static { opacity: .28; right: -95px; }
+  .help-hero > img.help-luna-static {
+    right: -72px !important;
+    width: 360px !important;
+    opacity: .25;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 30%);
+            mask-image: linear-gradient(90deg, transparent 0, #000 30%);
+  }
   .help-steps { grid-template-columns: 1fr !important; }
   .study-toolbar,
   .study-grid { grid-template-columns: 1fr !important; }

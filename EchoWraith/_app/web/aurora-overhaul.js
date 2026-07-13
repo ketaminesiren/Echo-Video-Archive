@@ -48,20 +48,20 @@
   function installStaticMascots() {
     const loader = $(".luna-loader");
     if (loader && !loader.querySelector(".luna-static")) {
-      loader.innerHTML = `${mascot("luna-chibi-work.webp", "is-small")}<span class="luna-ring"></span>`;
+      loader.innerHTML = `${mascot("luna-aurora-download.webp", "is-small")}<span class="luna-ring"></span>`;
     }
 
     const overview = $("#downloads-view .job-overview");
     if (overview && !overview.querySelector(".download-luna-card")) {
       const card = document.createElement("aside");
       card.className = "download-luna-card";
-      card.innerHTML = `${mascot("luna-chibi-work.webp", "is-download")}<span><strong>Luna çalışıyor</strong><small>İndirme ve dönüştürme aşamalarını senin için izliyor.</small></span>`;
+      card.innerHTML = `${mascot("luna-aurora-download.webp", "is-download")}<span><strong>Luna çalışıyor</strong><small>İndirme ve dönüştürme aşamalarını senin için izliyor.</small></span>`;
       overview.appendChild(card);
     }
 
     const helpImage = $("#help-view .help-hero > img");
     if (helpImage) {
-      helpImage.src = "./assets/luna-chibi-celebrate.webp";
+      helpImage.src = "./assets/luna-aurora-guide.webp";
       helpImage.alt = "EchoWraith rehberi Luna";
       helpImage.classList.add("help-luna-static");
     }
@@ -70,7 +70,7 @@
   function updateLunaState(state, active) {
     const busy = Boolean(state.job?.busy || active);
     const ready = (state.lessons || []).some((lesson) => lesson.status === "Tamamlandı");
-    const image = busy ? "luna-chibi-work.webp" : ready ? "luna-chibi-celebrate.webp" : "luna-chibi-discover.webp";
+    const image = busy ? "luna-aurora-download.webp" : ready ? "luna-aurora-success.webp" : "luna-aurora-download.webp";
     const title = busy ? "Luna çalışıyor" : ready ? "Luna arşivi hazırladı" : "Luna hazır";
     const detail = busy
       ? "İndirme ve dönüştürme aşamalarını senin için izliyor."
@@ -93,8 +93,40 @@
     heading.classList.add("aurora-library-heading");
     const art = document.createElement("div");
     art.className = "library-luna-static";
-    art.innerHTML = `<span class="library-luna-glow"></span><img src="./assets/luna-point.webp" alt="Luna" />`;
+    art.innerHTML = `<span class="library-luna-glow"></span><img src="./assets/luna-aurora-library.webp" alt="Kütüphaneyi düzenleyen Luna" />`;
     heading.appendChild(art);
+  }
+
+  function installSectionMascots() {
+    const scenes = [
+      ["#history-view > .page-heading", "history", "luna-aurora-history.webp", "İzleme geçmişini düzenleyen Luna"],
+      ["#study-view > .page-heading", "study", "luna-aurora-study.webp", "Ders notlarını inceleyen Luna"]
+    ];
+    scenes.forEach(([selector, name, src, alt]) => {
+      const host = $(selector);
+      if (!host || host.querySelector(`.section-luna-scene.is-${name}`)) return;
+      const scene = document.createElement("div");
+      scene.className = `section-luna-scene is-${name}`;
+      scene.innerHTML = `<img src="./assets/${src}" alt="${alt}" />`;
+      host.appendChild(scene);
+    });
+
+    const watchHeader = $("#watch-header");
+    if (watchHeader?.children.length && !watchHeader.querySelector(".watch-luna-chip")) {
+      const scene = document.createElement("div");
+      scene.className = "watch-luna-chip";
+      scene.innerHTML = '<img src="./assets/luna-aurora-watch.webp" alt="Dersi izlemeye hazır Luna" />';
+      watchHeader.querySelector(".watch-actions")?.insertAdjacentElement("beforebegin", scene);
+    }
+
+    const diagnosticsTile = $("#diagnostics-view .diagnostic-overview > div:last-child");
+    if (diagnosticsTile && !diagnosticsTile.querySelector(".diagnostic-inline-luna")) {
+      const image = document.createElement("img");
+      image.className = "diagnostic-inline-luna";
+      image.src = "./assets/luna-aurora-diagnostics.webp";
+      image.alt = "Sistemi inceleyen Luna";
+      diagnosticsTile.prepend(image);
+    }
   }
 
   function hashText(value) {
@@ -134,14 +166,14 @@
     if (transcript && !transcript.querySelector(".study-empty-visual")) {
       const visual = document.createElement("div");
       visual.className = "study-empty-visual transcript-visual";
-      visual.innerHTML = `${ICONS.transcript}<i></i><i></i>`;
+      visual.innerHTML = `<img src="./assets/luna-aurora-study.webp" alt="Dersi inceleyen Luna" />`;
       transcript.prepend(visual);
     }
     const quiz = $("#quiz-body .study-placeholder");
     if (quiz && !quiz.querySelector(".study-empty-visual")) {
       const visual = document.createElement("div");
       visual.className = "study-empty-visual quiz-visual";
-      visual.innerHTML = `${ICONS.quiz}<i></i><i></i>`;
+      visual.innerHTML = `<img src="./assets/luna-aurora-success.webp" alt="Testi hazırlayan Luna" />`;
       quiz.prepend(visual);
     }
   }
@@ -275,12 +307,12 @@
       // processing pace as %/dk instead of a blank so the field is never dead.
       let speed;
       if (active?.download_speed > 0) speed = `${formatBytes(active.download_speed)}/sn`;
-      else if (pace.velocity > 0) speed = `%${(pace.velocity * 100 * 60).toFixed(1)}/dk`;
+      else if (pace.velocity > 0) speed = `${(pace.velocity * 100 * 60).toFixed(1)}%/dk`;
       else speed = "—";
 
       let progressText;
       if (active?.known_size && active?.bytes_downloaded) progressText = `${formatBytes(active.bytes_downloaded)} / ${formatBytes(active.known_size)}`;
-      else if (active) progressText = `%${percent}`;
+      else if (active) progressText = `${percent}%`;
       else progressText = "—";
 
       const stage = active?.status || (state.job?.busy ? state.job?.label || "İşlem sürüyor" : "Hazır");
@@ -369,6 +401,7 @@
     installBrand();
     installStaticMascots();
     installLibraryHero();
+    installSectionMascots();
     installHelpStepIcons();
     installStudyArtwork();
     ensureDownloadHero();
