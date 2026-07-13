@@ -963,7 +963,7 @@
   }
 
   function showTour(force = false) {
-    if (!force && localStorage.getItem("echowraith-tour-5") === "done") return;
+    if (!force && localStorage.getItem("echowraith-tour-6") === "done") return;
     ui.tourIndex = 0;
     $("#tour-overlay").classList.remove("is-hidden");
     document.body.classList.add("tour-active");
@@ -1023,7 +1023,7 @@
   }
 
   function closeTour() {
-    localStorage.setItem("echowraith-tour-5", "done");
+    localStorage.setItem("echowraith-tour-6", "done");
     window.clearTimeout(ui.tourSpotTimer);
     const overlay = $("#tour-overlay");
     overlay.classList.add("is-hidden");
