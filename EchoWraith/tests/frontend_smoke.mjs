@@ -80,6 +80,8 @@ assert(overhaulCss.includes("recovery-life") && overhaulCss.includes("empty-luna
 assert(overhaulCss.includes(".recovery-overlay.is-hidden"), "the presentation layer must preserve the recovery hidden state");
 assert(overhaulCss.includes(".help-hero > img.help-luna-static"), "help Luna positioning must override the legacy hero rule");
 assert(overhaulCss.includes(".help-steps article > .help-step-icon"), "help step icons must use the centered high-specificity rule");
+assert(overhaulCss.includes("animation: ew-aurora-drift 13s") && overhaulCss.includes("@keyframes ew-library-aurora"), "global and library aurora layers must stay animated");
+assert(overhaulCss.includes("mix-blend-mode: screen") && overhaulCss.includes("ellipse 50% 64%"), "library Luna should blend into the hero without hard image edges");
 assert(!/%\$\{/.test(rawScript) && !/%\$\{/.test(rawOverhaulScript), "percentages must use the conventional number-before-sign format");
 assert(html.includes("luna-launcher-icon.png"), "the browser should use Luna's launcher icon");
 for (const asset of ["luna-chibi-work.webp", "luna-chibi-celebrate.webp", "luna-chibi-discover.webp"]) {
