@@ -48,23 +48,43 @@
   function installStaticMascots() {
     const loader = $(".luna-loader");
     if (loader && !loader.querySelector(".luna-static")) {
-      loader.innerHTML = `${mascot("luna-point.webp", "is-small")}<span class="luna-ring"></span>`;
+      loader.innerHTML = `${mascot("luna-chibi-work.webp", "is-small")}<span class="luna-ring"></span>`;
     }
 
     const overview = $("#downloads-view .job-overview");
     if (overview && !overview.querySelector(".download-luna-card")) {
       const card = document.createElement("aside");
       card.className = "download-luna-card";
-      card.innerHTML = `${mascot("luna-run.webp", "is-download")}<span><strong>Luna çalışıyor</strong><small>İndirme ve dönüştürme aşamalarını izliyor.</small></span>`;
+      card.innerHTML = `${mascot("luna-chibi-work.webp", "is-download")}<span><strong>Luna çalışıyor</strong><small>İndirme ve dönüştürme aşamalarını senin için izliyor.</small></span>`;
       overview.appendChild(card);
     }
 
     const helpImage = $("#help-view .help-hero > img");
     if (helpImage) {
-      helpImage.src = "./assets/luna-point.webp";
+      helpImage.src = "./assets/luna-chibi-celebrate.webp";
       helpImage.alt = "EchoWraith rehberi Luna";
       helpImage.classList.add("help-luna-static");
     }
+  }
+
+  function updateLunaState(state, active) {
+    const busy = Boolean(state.job?.busy || active);
+    const ready = (state.lessons || []).some((lesson) => lesson.status === "Tamamlandı");
+    const image = busy ? "luna-chibi-work.webp" : ready ? "luna-chibi-celebrate.webp" : "luna-chibi-discover.webp";
+    const title = busy ? "Luna çalışıyor" : ready ? "Luna arşivi hazırladı" : "Luna hazır";
+    const detail = busy
+      ? "İndirme ve dönüştürme aşamalarını senin için izliyor."
+      : ready
+        ? "Hazır derslerin güvenle arşivde; kaldığın yerden devam edebilirsin."
+        : "Bir ders seçtiğinde arşivi düzenlemeye başlayacak.";
+    const card = $("#downloads-view .download-luna-card");
+    const cardImage = card ? $("img", card) : null;
+    if (card) card.dataset.state = busy ? "busy" : ready ? "ready" : "idle";
+    if (cardImage) cardImage.src = `./assets/${image}`;
+    setText("#downloads-view .download-luna-card strong", title);
+    setText("#downloads-view .download-luna-card small", detail);
+    const loaderImage = $("#downloads-view .luna-loader .luna-static img");
+    if (loaderImage) loaderImage.src = `./assets/${image}`;
   }
 
   function installLibraryHero() {
@@ -237,6 +257,7 @@
       if (!response.ok) return;
       const state = await response.json();
       const active = (state.lessons || []).find((lesson) => ["İndiriliyor", "Birleştiriliyor", "Dönüştürülüyor", "Kaynak aranıyor"].includes(lesson.status));
+      updateLunaState(state, active);
 
       // The lesson's own progress (0..1) is the source of truth; fall back to
       // the header percent only when no active lesson is exposed yet.

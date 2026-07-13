@@ -155,8 +155,8 @@
     { title: "Odak Modu ve Tam Ekran.", text: "Alttaki Odak Modu düğmesi her şeyi gizleyip yalnızca videoyu büyütür; kamera küçük bir köşe penceresi olarak kalır. Çıkmak için Esc. Yanındaki düğme Tam Ekran açar.", view: "watch", pose: "point", target: '[data-action="theater"]' },
     { title: "Kaldığın yerden devam.", text: "Nerede bıraktığın otomatik hatırlanır. İzleme Geçmişi’nden veya Kütüphanenin üstündeki karttan tek dokunuşla devam edebilirsin.", view: "history", pose: "run", target: '.nav-item[data-view="history"]' },
     { title: "Transkript ve Test (Deneysel).", text: "Bir dersi yazıya çevirip kendine çoktan seçmeli test çıkarabilirsin; her şey bu bilgisayarda çalışır. Bu özellik hâlâ geliştiriliyor, sonuçlar bazen eksik olabilir.", view: "study", pose: "point", target: '.nav-item[data-view="study"]' },
-    { title: "Küçük not: korkma!", text: "İndirme sırasında ekranda bir an siyah bir komut penceresi açılıp kendiliğinden kapanabilir — bu tamamen normaldir, EchoWraith arka planda çalışıyordur, bir şey bozulmaz. Bir sorun olursa üstte turuncu bir “otomatik çözüm” şeridi belirir ve sen siteyi kullanmaya devam edebilirsin.", view: "downloads", pose: "wave", target: "#log-summary" },
-    { title: "Hazırsın, şefim!", text: "Bir sorun olursa bekle; EchoWraith uygun çözümü kendi dener. Bu turu istediğin an “Nasıl Kullanılır?” bölümünden yeniden başlatabilirsin. Kolay gelsin!", view: "help", pose: "thumb", target: null },
+    { title: "Küçük not: korkma!", text: "İndirme sırasında ekranda bir an siyah bir komut penceresi açılıp kendiliğinden kapanabilir — bu tamamen normaldir. Luna arka plandaki süreci takip eder; bir sorun olursa üstte kısa bir “otomatik çözüm” şeridi belirir ve sen siteyi kullanmaya devam edebilirsin.", view: "downloads", pose: "wave", target: "#log-summary" },
+    { title: "Hazırsın, şefim!", text: "Bir sorun olursa bekle; Luna uygun çözümü senin için dener. Bu turu istediğin an “Nasıl Kullanılır?” bölümünden yeniden başlatabilirsin. Kolay gelsin!", view: "help", pose: "thumb", target: null },
   ];
 
   const TOUR_POSES = { wave: "luna-wave", point: "luna-point", run: "luna-run", thumb: "luna-thumb" };
@@ -730,7 +730,7 @@
       const progress = lesson.status === "Tamamlandı" ? 1 : lesson.progress || 0;
       const transfer = lesson.download_speed ? ` · ${formatSpeed(lesson.download_speed)}${lesson.eta_seconds ? ` · ${formatEta(lesson.eta_seconds)}` : ""}` : "";
       return `<div class="queue-item"><span class="queue-index">${String(index + 1).padStart(2, "0")}</span><span class="queue-copy"><strong>${escapeHtml(lesson.title)}</strong><small>${escapeHtml(lesson.status || "Bekliyor")}${transfer}${lesson.error ? ` · ${escapeHtml(lesson.error)}` : ""}</small></span><span class="queue-progress"><span class="meter"><i style="width:${progress * 100}%"></i></span><span>${formatPercent(progress, true)}</span></span><button class="retry-button" data-action="${lesson.status === "Hata" ? "retry-one" : "toggle-select"}" data-key="${escapeHtml(lesson.key)}" type="button" aria-label="${lesson.status === "Hata" ? "Tekrar dene" : "Kuyruktan çıkar"}"><span data-icon="${lesson.status === "Hata" ? "refresh" : "close"}"></span></button></div>`;
-    }).join("") : '<div class="empty-state"><span data-icon="download"></span><h2>Kuyruk boş</h2><p>Kütüphaneden ders seçerek indirmeyi başlat.</p></div>';
+    }).join("") : '<div class="empty-state luna-empty"><img class="empty-luna" src="./assets/luna-chibi-discover.webp" alt="Arşivi tarayan Luna" /><h2>Kuyruk boş</h2><p>Luna hazır; kütüphaneden ders seçerek indirmeyi başlat.</p></div>';
     injectIcons($("#queue-list"));
     renderJob();
     renderLogs();
@@ -921,13 +921,45 @@
     injectIcons($("#diagnostic-log-list"));
   }
 
-  function showRecovery(payload = {}) {
+  let recoveryHideTimer = 0;
+  let recoveryExitTimer = 0;
+  const RECOVERY_AUTO_HIDE_MS = 7000;
+
+  function hideRecovery(immediate = false) {
     const overlay = $("#recovery-overlay");
-    overlay.classList.toggle("is-hidden", payload.active === false);
-    if (payload.active !== false) {
-      $("#recovery-title").textContent = payload.message || "Lütfen bekleyin…";
-      $("#recovery-copy").textContent = payload.suggestion || "EchoWraith daha uyumlu bir yöntem deniyor.";
+    window.clearTimeout(recoveryHideTimer);
+    window.clearTimeout(recoveryExitTimer);
+    recoveryHideTimer = 0;
+    recoveryExitTimer = 0;
+    if (immediate || overlay.classList.contains("is-hidden")) {
+      overlay.classList.add("is-hidden");
+      overlay.classList.remove("is-leaving");
+      return;
     }
+    overlay.classList.add("is-leaving");
+    recoveryExitTimer = window.setTimeout(() => {
+      overlay.classList.add("is-hidden");
+      overlay.classList.remove("is-leaving");
+      recoveryExitTimer = 0;
+    }, 220);
+  }
+
+  function showRecovery(payload = {}) {
+    if (payload.active === false) {
+      hideRecovery();
+      return;
+    }
+    const overlay = $("#recovery-overlay");
+    window.clearTimeout(recoveryHideTimer);
+    window.clearTimeout(recoveryExitTimer);
+    recoveryExitTimer = 0;
+    overlay.classList.remove("is-hidden", "is-leaving");
+    $("#recovery-title").textContent = payload.message || "Lütfen bekleyin…";
+    $("#recovery-copy").textContent = payload.suggestion || "Luna daha uyumlu bir yöntem deniyor.";
+    const requestedTtl = Number(payload.ttl_ms);
+    const ttl = Number.isFinite(requestedTtl) ? clamp(requestedTtl, 2500, 15000) : RECOVERY_AUTO_HIDE_MS;
+    overlay.style.setProperty("--recovery-ttl", `${ttl}ms`);
+    recoveryHideTimer = window.setTimeout(() => hideRecovery(), ttl);
   }
 
   function showTour(force = false) {
@@ -1019,6 +1051,7 @@
       const data = await request("/state");
       model = { ...model, ...data, settings: { ...model.settings, ...(data.settings || {}) }, job: { ...model.job, ...(data.job || {}) } };
       renderAll();
+      if (!model.job?.busy) hideRecovery(true);
       return true;
     } catch (error) {
       if (!silent) toast("Bağlantı kurulamadı", error.message, "error");
@@ -1119,6 +1152,7 @@
 
   async function handleAction(action, target) {
     const key = target.dataset.key;
+    if (action === "dismiss-recovery") return hideRecovery();
     if (action === "go-library") return setView("library");
     if (action === "show-downloads") return setView("downloads");
     if (action === "open-settings") { renderSettings(); return showDialog("#settings-dialog"); }
@@ -1223,7 +1257,7 @@
     if (kind === "profile_update") { model.profile = payload || {}; renderProfile(); return; }
     if (kind === "auth_ok") { model.authenticated = true; renderSettings(); toast("Oturum hazır", "Site bağlantısı başarıyla kuruldu.", "success"); return; }
     if (kind === "needs_login") { toast("Tarayıcı girişi bekleniyor", "Açılan Chrome penceresinde öğrenci girişini tamamla.", "info", 6000); return; }
-    if (kind === "job_started") { model.job.busy = true; model.job.label = String(payload || "İşlem sürüyor"); renderJob(); return; }
+    if (kind === "job_started") { hideRecovery(true); model.job.busy = true; model.job.label = String(payload || "İşlem sürüyor"); renderJob(); return; }
     if (["job_done", "job_cancelled"].includes(kind)) { model.job.busy = false; model.job.stopping = false; model.job.title = String(payload || "Tamamlandı"); showRecovery({ active: false }); $("#study-progress").classList.add("is-hidden"); toast(kind === "job_done" ? "İşlem tamamlandı" : "İşlem durduruldu", String(payload || ""), kind === "job_done" ? "success" : "info"); refreshState(true).then(() => { if (ui.view === "study" && ui.studyKey) loadStudyData(ui.studyKey); }); return; }
     if (kind === "job_error") { model.job.busy = false; model.job.stopping = false; showRecovery({ active: false }); $("#study-progress").classList.add("is-hidden"); toast("İşlem hatası", `${payload.message || String(payload)}${payload.suggestion ? ` ${payload.suggestion}` : ""}`, "error", 8500); refreshState(true); return; }
     if (kind === "scan_progress") { model.job.detail = `Sayfa ${payload.page} · ${payload.count} ders bulundu`; renderJob(); return; }
@@ -1337,6 +1371,16 @@
     if (PREVIEW) {
       model.authenticated = true;
       model.lessons = demoLessons();
+      const previewActive = model.lessons.find((lesson) => lesson.status === "İndiriliyor");
+      model.job = {
+        busy: Boolean(previewActive),
+        paused: false,
+        label: "Dönüştürülüyor",
+        detail: "Luna video akışını çevrimdışı izlemeye hazırlıyor.",
+        done: 0,
+        total: previewActive ? 1 : 0,
+        title: previewActive?.title || "",
+      };
       model.profile = { display_name: "Demo Öğrenci", source: "Efsane Uzem", fields: [{ label: "E-posta", value: "ogrenci@example.com" }, { label: "Üyelik", value: "Aktif öğrenci" }], packages: ["2026 ÖABT Hap Bilgi Kampı"] };
       ui.currentKey = model.lessons[0].key;
       ui.studyKey = model.lessons[0].key;

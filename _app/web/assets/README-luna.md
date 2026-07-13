@@ -16,6 +16,23 @@ Luna görselleri olarak koy:
 | `luna-run.webp`    | Hareketli/aksiyon poz (indir, izle, geçmiş)     |
 | `luna-thumb.webp`  | Başparmak yukarı / onay (turun son adımı)       |
 
+## Chibi durum görselleri
+
+Koyu lacivert kenarlara sahip kare vignette'ler durum kartlarına ve boş
+ekranlara doğrudan karışacak şekilde hazırlanmıştır:
+
+| Dosya adı                    | Kullanım                                      |
+|------------------------------|-----------------------------------------------|
+| `luna-chibi-work.webp`       | İndirme, dönüştürme ve otomatik çözüm         |
+| `luna-chibi-celebrate.webp`  | Hazır/tamamlandı durumu ve yardım ekranı      |
+| `luna-chibi-discover.webp`   | Arama, tarama, boş kütüphane ve boş kuyruk    |
+
+Bu üç görsel, mevcut Luna poz sayfası kimlik referansı ve uygulamanın
+cyan–violet aurora arayüzü kullanılarak yerleşik imagegen akışıyla üretildi.
+Ortak istem özeti: aynı uzun indigo saç, mor göz, hilal toka ve siyah/lacivert
+siber arşivci kıyafetini koru; premium chibi anime oyun arayüzü illüstrasyonu;
+koyu gece mavisi vignette; metin, logo, filigran ve ikinci karakter olmasın.
+
 Not: `.webp` bekleniyor. Elinde `.png` varsa ya `.webp`'ye çevir ya da
 `app.js` içindeki `TOUR_POSES` uzantısını `.png` yap.
 

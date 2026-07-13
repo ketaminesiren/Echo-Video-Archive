@@ -64,6 +64,21 @@ class DummySite:
 
 
 class EchoWraithCoreTests(unittest.TestCase):
+    def test_recovery_event_has_a_bounded_display_lifetime(self) -> None:
+        broker = core.EventBroker()
+        sink = core.EventSink(broker)
+        sink.recovery("Luna deniyor.", code="TEST", suggestion="Bekleyin.", ttl_ms=99_000)
+        events, _ = broker.read_since(0, timeout=0)
+        recovery = next(event["payload"] for event in events if event["kind"] == "recovery")
+        self.assertTrue(recovery["active"])
+        self.assertEqual(recovery["ttl_ms"], 15_000)
+
+        sink.recovery("Tamamlandı.", code="DONE", suggestion="", active=False)
+        events, _ = broker.read_since(events[-1]["id"], timeout=0)
+        recovery = next(event["payload"] for event in events if event["kind"] == "recovery")
+        self.assertFalse(recovery["active"])
+        self.assertEqual(recovery["ttl_ms"], 0)
+
     def test_stale_transient_state_is_healed_on_startup(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
             state = Path(folder) / "state.json"

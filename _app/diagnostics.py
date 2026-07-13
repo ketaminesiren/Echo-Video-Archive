@@ -106,7 +106,7 @@ def diagnose_exception(error: BaseException) -> dict[str, Any]:
     result = {
         "code": "UNEXPECTED",
         "reason": "Beklenmeyen bir işlem hatası oluştu.",
-        "suggestion": "EchoWraith ayrıntıları kaydetti; otomatik tekrar denenecek.",
+        "suggestion": "Luna ayrıntıları kaydetti; otomatik tekrar denenecek.",
         "recoverable": True,
     }
     rules = (

@@ -487,8 +487,28 @@ class EventSink:
         self.emit("stage", payload)
         self.log(message, "info", stage=stage, lesson_key=lesson_key)
 
-    def recovery(self, message: str, *, code: str, suggestion: str, lesson_key: str = "", active: bool = True) -> None:
-        payload = {"active": active, "message": message, "code": code, "suggestion": suggestion, "lesson_key": lesson_key}
+    def recovery(
+        self,
+        message: str,
+        *,
+        code: str,
+        suggestion: str,
+        lesson_key: str = "",
+        active: bool = True,
+        ttl_ms: int = 7000,
+    ) -> None:
+        # Recovery is a transient heads-up, not a second job state. Some
+        # fallback methods can run for a long time after this event, so give
+        # clients an explicit display lifetime instead of leaving the banner
+        # open until the entire lesson finishes.
+        payload = {
+            "active": active,
+            "message": message,
+            "code": code,
+            "suggestion": suggestion,
+            "lesson_key": lesson_key,
+            "ttl_ms": max(2500, min(15000, int(ttl_ms))) if active else 0,
+        }
         self.emit("recovery", payload)
         self.log(message, "warning" if active else "success", stage="RECOVERY", code=code, suggestion=suggestion, lesson_key=lesson_key)
 
