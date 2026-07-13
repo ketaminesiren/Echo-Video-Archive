@@ -71,6 +71,38 @@ function Invoke-Logged([string]$File, [string[]]$Arguments) {
     if ($LASTEXITCODE -ne 0) { throw "Komut tamamlanamadı: $File" }
 }
 
+# The one-time component install needs the internet, and a momentary DNS/Wi-Fi
+# blip used to kill the whole launch with a scary pip traceback. Retry each
+# network step a few times with a growing pause so a transient hiccup recovers
+# on its own instead of failing the first-run setup.
+function Invoke-WithRetry([scriptblock]$Action, [string]$What, [int]$Max = 4) {
+    for ($attempt = 1; $attempt -le $Max; $attempt++) {
+        try { & $Action; return }
+        catch {
+            Add-Content -Path $LauncherLog -Value "RETRY ${What} ${attempt}/${Max}: $($_.Exception.Message)" -Encoding UTF8
+            if ($attempt -ge $Max) { throw }
+            Write-Step "$What tamamlanamadı ($attempt/$Max); internet bağlantısı beklenip yeniden denenecek..."
+            Start-Sleep -Seconds ([Math]::Min(30, 6 * $attempt))
+        }
+    }
+}
+
+# Wait until a real DNS lookup for the package servers succeeds. On networks
+# that are simply slow to come up this gives them time; if the machine truly
+# has no route out we fall through and the retry/telling error handles it.
+function Wait-ForNetwork([int]$Max = 8) {
+    for ($attempt = 1; $attempt -le $Max; $attempt++) {
+        foreach ($server in @("pypi.org", "files.pythonhosted.org")) {
+            try {
+                if ([System.Net.Dns]::GetHostAddresses($server)) { return $true }
+            } catch {}
+        }
+        Write-Step "İnternet bağlantısı bekleniyor ($attempt/$Max)... Wi-Fi veya kabloya bağlı olduğundan emin ol."
+        Start-Sleep -Seconds 5
+    }
+    return $false
+}
+
 function Test-Python([string]$Candidate, [string[]]$Prefix = @()) {
     try {
         $version = & $Candidate @Prefix -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>$null
@@ -98,7 +130,8 @@ try {
         Write-Step "Gerekli Python bileşeni bulunamadı; kullanıcı hesabına otomatik kuruluyor..."
         $Installer = Join-Path $RuntimeRoot "python-installer.exe"
         $PythonUrl = "https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe"
-        Invoke-WebRequest -Uri $PythonUrl -OutFile $Installer -UseBasicParsing
+        Wait-ForNetwork | Out-Null
+        Invoke-WithRetry { Invoke-WebRequest -Uri $PythonUrl -OutFile $Installer -UseBasicParsing } "Python indirme"
         $process = Start-Process -FilePath $Installer -ArgumentList "/quiet", "InstallAllUsers=0", "PrependPath=1", "Include_test=0", "Include_launcher=1" -Wait -PassThru
         if ($process.ExitCode -ne 0) { throw "Python otomatik kurulamadı (kod $($process.ExitCode))." }
         Remove-Item $Installer -Force -ErrorAction SilentlyContinue
@@ -130,12 +163,14 @@ try {
             Write-Step "Çalışma bileşenlerinden biri eksik; otomatik onarım uygulanıyor..."
         }
         Write-Step "Gerekli bileşenler kuruluyor; ilk açılış birkaç dakika sürebilir..."
-        Invoke-Logged $VenvPython @("-m", "pip", "install", "--upgrade", "pip", "wheel")
-        Invoke-Logged $VenvPython @("-m", "pip", "install", "--prefer-binary", "-r", $Requirements)
+        Wait-ForNetwork | Out-Null
+        $pipRetry = @("--retries", "6", "--timeout", "40")
+        Invoke-WithRetry { Invoke-Logged $VenvPython (@("-m", "pip", "install", "--upgrade") + $pipRetry + @("pip", "wheel")) } "Kurulum araçları"
+        Invoke-WithRetry { Invoke-Logged $VenvPython (@("-m", "pip", "install", "--prefer-binary") + $pipRetry + @("-r", $Requirements)) } "Gerekli bileşenler"
         Write-Step "Görünmeyen tarayıcı motoru hazırlanıyor..."
-        Invoke-Logged $VenvPython @("-m", "playwright", "install", "chromium")
+        Invoke-WithRetry { Invoke-Logged $VenvPython @("-m", "playwright", "install", "chromium") } "Tarayıcı motoru"
         Write-Step "Video araçları hazırlanıyor..."
-        Invoke-Logged $VenvPython @("-c", "from static_ffmpeg import run; print(run.get_or_fetch_platform_executables_else_raise())")
+        Invoke-WithRetry { Invoke-Logged $VenvPython @("-c", "from static_ffmpeg import run; print(run.get_or_fetch_platform_executables_else_raise())") } "Video araçları"
         Set-Content -Path $Marker -Value $CurrentHash -Encoding ASCII
     }
 
@@ -147,7 +182,16 @@ try {
 } catch {
     $message = $_.Exception.Message
     Add-Content -Path $LauncherLog -Value "FATAL: $message`n$($_.ScriptStackTrace)" -Encoding UTF8
-    Write-Host "`n  EchoWraith başlatılamadı: $message" -ForegroundColor Red
+    $networkHit = $message -match "getaddrinfo|NewConnectionError|Failed to establish|ConnectionError|actively refused|timed out|11001|11004|Ad çözümleme|çözümlenemedi|uzak ad"
+    if ($networkHit) {
+        Write-Host "`n  EchoWraith ilk kurulum için internete bağlanamadı." -ForegroundColor Red
+        Write-Host "  Yapman gereken: internet bağlantını kontrol et (Wi-Fi/kablo), sonra" -ForegroundColor Yellow
+        Write-Host "  BAŞLAT dosyasına yeniden çift tıkla. Kaldığı yerden kurulumu sürdürür." -ForegroundColor Yellow
+        Write-Host "  Not: Okul/iş ağı python.org veya pypi.org adreslerini engelliyorsa," -ForegroundColor DarkYellow
+        Write-Host "  başka bir ağda (ör. telefon hotspot) ilk kurulumu bir kez tamamlaman yeter." -ForegroundColor DarkYellow
+    } else {
+        Write-Host "`n  EchoWraith başlatılamadı: $message" -ForegroundColor Red
+    }
     Write-Host "  Ayrıntılı kayıt: $LauncherLog" -ForegroundColor Yellow
     try { Start-Process explorer.exe -ArgumentList "/select,`"$LauncherLog`"" } catch {}
     exit 1
