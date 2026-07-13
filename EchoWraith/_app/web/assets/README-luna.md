@@ -27,6 +27,11 @@ ekranlara doğrudan karışacak şekilde hazırlanmıştır:
 | `luna-chibi-celebrate.webp`  | Hazır/tamamlandı durumu ve yardım ekranı      |
 | `luna-chibi-discover.webp`   | Arama, tarama, boş kütüphane ve boş kuyruk    |
 
+## Başlatıcı simgesi
+
+`luna-launcher-icon.png` tarayıcı sekmesinde, `luna-launcher-icon.ico` ise
+Windows başlatıcı penceresinde kullanılır. İkisi de aynı şeffaf Luna portresidir.
+
 Bu üç görsel, mevcut Luna poz sayfası kimlik referansı ve uygulamanın
 cyan–violet aurora arayüzü kullanılarak yerleşik imagegen akışıyla üretildi.
 Ortak istem özeti: aynı uzun indigo saç, mor göz, hilal toka ve siyah/lacivert

@@ -4,7 +4,7 @@ Luna tarafından kodlanan ve tasarlanan EchoWraith; Efsane Uzem hesabındaki vid
 
 ## Kullanım
 
-ZIP’i bir klasöre çıkartıp yalnızca **EchoWraith.bat** dosyasına çift tıklayın. İlk açılışta gereken bileşenler kullanıcı hesabınıza otomatik kurulur. Sonraki açılışlar doğrudan paneli başlatır.
+ZIP’i bir klasöre çıkartıp, `EchoWraith` klasörünün yanındaki **BAŞLAT.bat** dosyasına çift tıklayın. İlk açılışta gereken bileşenler kullanıcı hesabınıza otomatik kurulur. Sonraki açılışlar doğrudan paneli başlatır.
 
 Panel yalnızca bu bilgisayarda `127.0.0.1` adresinde çalışır; internete yayınlanmaz. Öğrenci şifresi diske veya loglara yazılmaz.
 

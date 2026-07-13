@@ -14,6 +14,34 @@ $LauncherLog = Join-Path $LogRoot "launcher.log"
 $VenvRoot = Join-Path $RuntimeRoot ".venv"
 $Marker = Join-Path $RuntimeRoot "requirements.sha256"
 
+# A .bat file cannot carry its own Explorer icon. Apply Luna's bundled icon to
+# the console window instead; failures are intentionally ignored on terminals
+# that do not expose a classic console window.
+$script:LunaConsoleIcon = $null
+try {
+    $IconPath = Join-Path $AppRoot "web\assets\luna-launcher-icon.ico"
+    if (Test-Path $IconPath) {
+        Add-Type -AssemblyName System.Drawing
+        Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class EchoWraithConsoleIcon {
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr GetConsoleWindow();
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    public static extern IntPtr SendMessage(IntPtr hWnd, uint message, IntPtr wParam, IntPtr lParam);
+}
+"@
+        $window = [EchoWraithConsoleIcon]::GetConsoleWindow()
+        if ($window -ne [IntPtr]::Zero) {
+            $script:LunaConsoleIcon = New-Object System.Drawing.Icon($IconPath)
+            [void][EchoWraithConsoleIcon]::SendMessage($window, 0x0080, [IntPtr]::Zero, $script:LunaConsoleIcon.Handle)
+            [void][EchoWraithConsoleIcon]::SendMessage($window, 0x0080, [IntPtr]1, $script:LunaConsoleIcon.Handle)
+        }
+    }
+} catch { }
+
 New-Item -ItemType Directory -Force -Path $RuntimeRoot, $LogRoot | Out-Null
 
 function Write-Step([string]$Message) {

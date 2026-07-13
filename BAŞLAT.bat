@@ -17,7 +17,7 @@ echo         Maskot: Luna       Yapim: Restless
 echo         Ders arsivin hazirlaniyor, lutfen bekle...
 echo.
 timeout /t 3 /nobreak >nul
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0_app\launcher.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0EchoWraith\_app\launcher.ps1"
 if errorlevel 1 (
   echo.
   echo   Bir sorun olustu. Ayrintilar icin yukaridaki mesajlara bak.

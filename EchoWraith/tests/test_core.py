@@ -64,6 +64,14 @@ class DummySite:
 
 
 class EchoWraithCoreTests(unittest.TestCase):
+    def test_distribution_root_has_only_launcher_and_app_folder(self) -> None:
+        repository_root = ROOT.parent
+        visible_entries = {path.name for path in repository_root.iterdir() if path.name != ".git"}
+        self.assertEqual(visible_entries, {"BAŞLAT.bat", "EchoWraith"})
+        launcher = (repository_root / "BAŞLAT.bat").read_text(encoding="utf-8")
+        self.assertIn(r"EchoWraith\_app\launcher.ps1", launcher)
+        self.assertTrue((ROOT / "_app" / "launcher.ps1").is_file())
+
     def test_recovery_event_has_a_bounded_display_lifetime(self) -> None:
         broker = core.EventBroker()
         sink = core.EventSink(broker)
@@ -109,6 +117,36 @@ class EchoWraithCoreTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder, tarfile.open(fileobj=payload, mode="r:gz") as archive:
             with self.assertRaises(RuntimeError):
                 updater._safe_extract(archive, Path(folder))
+
+    def test_update_applies_single_folder_package_and_root_launcher(self) -> None:
+        payload = io.BytesIO()
+        with tarfile.open(fileobj=payload, mode="w:gz") as archive:
+            files = {
+                "repo/EchoWraith/_app/version.txt": b"new-app",
+                "repo/EchoWraith/README.md": b"new-readme",
+                "repo/BAŞLAT.bat": b"new-launcher",
+            }
+            for name, content in files.items():
+                item = tarfile.TarInfo(name)
+                item.size = len(content)
+                archive.addfile(item, io.BytesIO(content))
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            install_root = root / "EchoWraith"
+            (install_root / "_app").mkdir(parents=True)
+            (install_root / "_app" / "version.txt").write_text("old-app", encoding="utf-8")
+            (root / "BAŞLAT.bat").write_text("old-launcher", encoding="utf-8")
+            with mock.patch.object(updater.core, "INSTALL_ROOT", install_root), mock.patch.object(
+                updater.core, "CACHE_DIR", root / "cache"
+            ), mock.patch.object(updater.core, "REVISION_FILE", root / "revision.json"), mock.patch.object(
+                updater, "_download_tarball", return_value=payload.getvalue()
+            ):
+                result = updater.apply_update("abc123")
+
+            self.assertTrue(result["ok"], result["error"])
+            self.assertEqual((install_root / "_app" / "version.txt").read_text(encoding="utf-8"), "new-app")
+            self.assertEqual((root / "BAŞLAT.bat").read_text(encoding="utf-8"), "new-launcher")
 
     @unittest.skipIf(os.name == "nt", "POSIX process-group assertion")
     def test_cancel_stops_external_process_group(self) -> None:

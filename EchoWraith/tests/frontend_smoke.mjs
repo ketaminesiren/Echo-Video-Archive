@@ -77,7 +77,11 @@ assert(css.includes('body.theater-mode .companion-card'), "focus mode should hid
 const overhaulCss = fs.readFileSync(path.join(root, "_app/web/aurora-overhaul.css"), "utf8");
 assert(overhaulCss.includes("recovery-life") && overhaulCss.includes("empty-luna"), "Luna recovery and empty-state visuals should exist");
 assert(overhaulCss.includes(".recovery-overlay.is-hidden"), "the presentation layer must preserve the recovery hidden state");
+assert(html.includes("luna-launcher-icon.png"), "the browser should use Luna's launcher icon");
 for (const asset of ["luna-chibi-work.webp", "luna-chibi-celebrate.webp", "luna-chibi-discover.webp"]) {
+  assert(fs.existsSync(path.join(root, "_app/web/assets", asset)), `${asset} should be bundled`);
+}
+for (const asset of ["luna-launcher-icon.png", "luna-launcher-icon.ico"]) {
   assert(fs.existsSync(path.join(root, "_app/web/assets", asset)), `${asset} should be bundled`);
 }
 

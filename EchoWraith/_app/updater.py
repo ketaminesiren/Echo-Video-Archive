@@ -25,9 +25,12 @@ import echowraith_core as core
 
 
 API_BASE = "https://api.github.com"
-# Top-level entries we are willing to replace. User data lives outside the
-# install directory (LOCALAPPDATA), so it is never touched.
-UPDATABLE_ENTRIES = ("_app", "EchoWraith.bat", "README.md")
+# Entries inside the single user-facing EchoWraith folder that may be replaced.
+# User data lives outside the install directory (LOCALAPPDATA), so it is never
+# touched. The root launcher is handled separately because it sits one level up.
+PACKAGE_DIRNAME = "EchoWraith"
+LAUNCHER_NAME = "BAŞLAT.bat"
+UPDATABLE_ENTRIES = ("_app", "README.md")
 _SKIP_DIRS = {"__pycache__", ".git"}
 
 
@@ -149,6 +152,16 @@ def _copy_tree(source: Path, target: Path) -> None:
         shutil.copy2(source, target)
 
 
+def _archive_install_root(extracted_root: Path) -> Path:
+    """Locate the install payload while accepting pre-folder-layout archives."""
+    packaged = extracted_root / PACKAGE_DIRNAME
+    if (packaged / "_app").is_dir():
+        return packaged
+    if (extracted_root / "_app").is_dir():
+        return extracted_root
+    raise RuntimeError("İndirilen güncelleme paketi beklenen dosyaları içermiyor.")
+
+
 def apply_update(sha: str = "") -> dict[str, Any]:
     """Download the target revision and copy it over the local install after
     backing the current files up. Returns {ok, sha, error, backup}."""
@@ -161,7 +174,8 @@ def apply_update(sha: str = "") -> dict[str, Any]:
         with tarfile.open(fileobj=io.BytesIO(blob), mode="r:gz") as archive:
             extracted_root = _safe_extract(archive, staging)
 
-        present = [name for name in UPDATABLE_ENTRIES if (extracted_root / name).exists()]
+        archive_install_root = _archive_install_root(extracted_root)
+        present = [name for name in UPDATABLE_ENTRIES if (archive_install_root / name).exists()]
         if "_app" not in present:
             raise RuntimeError("İndirilen güncelleme paketi beklenen dosyaları içermiyor.")
 
@@ -173,7 +187,18 @@ def apply_update(sha: str = "") -> dict[str, Any]:
                 _copy_tree(current_path, backup / name)
 
         for name in present:
-            _copy_tree(extracted_root / name, install_root / name)
+            _copy_tree(archive_install_root / name, install_root / name)
+
+        launcher_source = extracted_root / LAUNCHER_NAME
+        if launcher_source.is_file():
+            # New packages keep BAŞLAT.bat beside the EchoWraith folder. Older
+            # installations keep the app payload at their root, so update the
+            # launcher there without moving or deleting their working files.
+            launcher_target_root = install_root.parent if install_root.name.casefold() == PACKAGE_DIRNAME.casefold() else install_root
+            launcher_target = launcher_target_root / LAUNCHER_NAME
+            if launcher_target.exists():
+                _copy_tree(launcher_target, backup / LAUNCHER_NAME)
+            _copy_tree(launcher_source, launcher_target)
 
         _store_revision(sha or local_revision())
         return {"ok": True, "sha": sha, "backup": str(backup), "error": ""}
